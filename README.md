@@ -46,7 +46,7 @@ No other published Terraform module on the registry combines:
 
 ```hcl
 module "exit_node" {
-  source  = "your-namespace/tailscale-exit-node/aws"
+  source  = "aaditya420/tailscale-exit-node/aws"
   version = "~> 1.0"
 
   region            = "eu-west-3"
@@ -71,7 +71,7 @@ terraform output -raw adguard_password
 
 ```hcl
 module "exit_node" {
-  source  = "your-namespace/tailscale-exit-node/aws"
+  source  = "aaditya420/tailscale-exit-node/aws"
   version = "~> 1.0"
 
   region                = "us-east-1"
@@ -103,7 +103,7 @@ module "exit_node" {
 
 ```hcl
 module "exit_node" {
-  source  = "your-namespace/tailscale-exit-node/aws"
+  source  = "aaditya420/tailscale-exit-node/aws"
   version = "~> 1.0"
 
   region                     = "ap-south-1"

@@ -30,12 +30,10 @@ jobs:
 
             ```hcl
             module "exit_node" {
-              source  = "<YOUR_GITHUB_USERNAME>/tailscale-exit-node/aws"
+              source  = "aaditya420/tailscale-exit-node/aws"
               version = "~> ${{ steps.version.outputs.VERSION }}"
 
               region            = "eu-west-3"
               tailscale_api_key = var.tailscale_api_key
             }
             ```
-
-            > Replace `<YOUR_GITHUB_USERNAME>` with your registry namespace.
