@@ -1,0 +1,13 @@
+[tool.commitizen]
+name               = "cz_conventional_commits"
+tag_format         = "v$version"
+version            = "1.0.0"
+version_files      = ["pyproject.toml:version"]
+changelog_file     = "CHANGELOG.md"
+bump_message       = "bump: version $current_version → $new_version [skip ci]"
+update_changelog_on_bump = true
+
+[tool.pytest.ini_options]
+testpaths    = ["tests"]
+timeout      = 900
+addopts      = "-v"

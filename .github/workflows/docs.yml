@@ -1,0 +1,29 @@
+name: Auto-update Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "*.tf"
+      - "variables.tf"
+      - "outputs.tf"
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    name: Regenerate terraform-docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: terraform-docs/gh-actions@v1
+        with:
+          working-dir: .
+          output-file: README.md
+          output-method: inject
+          git-push: true
+          git-commit-message: "docs: regenerate terraform-docs inputs/outputs [skip ci]"

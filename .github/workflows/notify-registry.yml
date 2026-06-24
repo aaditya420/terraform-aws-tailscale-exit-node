@@ -1,0 +1,41 @@
+name: Notify Registry Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  github-release:
+    name: Create GitHub Release with registry link
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            ## Terraform Registry
+
+            This version is now available at the Terraform Registry (allow up to 10 min for indexing):
+
+            ```hcl
+            module "exit_node" {
+              source  = "<YOUR_GITHUB_USERNAME>/tailscale-exit-node/aws"
+              version = "~> ${{ steps.version.outputs.VERSION }}"
+
+              region            = "eu-west-3"
+              tailscale_api_key = var.tailscale_api_key
+            }
+            ```
+
+            > Replace `<YOUR_GITHUB_USERNAME>` with your registry namespace.
