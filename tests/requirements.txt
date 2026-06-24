@@ -4,5 +4,5 @@ paramiko>=3.4
 dnspython>=2.6
 python-terraform>=0.10
 pytest>=8.0
-pytest-timeout>=2.3
+pytest-timeout>=2.4.0
 pytest-xdist>=3.5
