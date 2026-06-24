@@ -136,10 +136,11 @@ resource "aws_instance" "tailscale_exit_node" {
 
   user_data_replace_on_change = true
   user_data = templatefile("${path.module}/templates/user_data.sh.tftpl", {
-    tailscale_auth_key   = tailscale_tailnet_key.exit_node.key
-    tailscale_tag        = var.tailscale_exit_node_tag
+    tailscale_auth_key      = tailscale_tailnet_key.exit_node.key
+    tailscale_tag           = var.tailscale_exit_node_tag
+    tailscale_hostname      = var.tailscale_hostname
     tailscale_accept_routes = var.tailscale_accept_routes
-    tailscale_accept_dns = var.tailscale_accept_dns
+    tailscale_accept_dns    = var.tailscale_accept_dns
 
     adguard_enabled              = var.adguard_enabled
     adguard_download_url         = local.adguard_download_url

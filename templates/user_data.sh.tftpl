@@ -29,6 +29,7 @@ sleep 5
 TS_ARGS="--authkey=$${TAILSCALE_AUTH_KEY} --advertise-exit-node --advertise-tags=$${TAILSCALE_TAG}"
 %{ if tailscale_accept_routes }TS_ARGS="$${TS_ARGS} --accept-routes"%{ endif }
 %{ if tailscale_accept_dns }TS_ARGS="$${TS_ARGS} --accept-dns"%{ endif }
+%{ if tailscale_hostname != null }TS_ARGS="$${TS_ARGS} --hostname=${tailscale_hostname}"%{ endif }
 tailscale up $${TS_ARGS}
 
 %{ if adguard_enabled }

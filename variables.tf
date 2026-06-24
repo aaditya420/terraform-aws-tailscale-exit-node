@@ -168,6 +168,12 @@ variable "tailscale_accept_dns" {
   default     = true
 }
 
+variable "tailscale_hostname" {
+  description = "Custom Tailscale device name shown in the admin console and used for MagicDNS. Defaults to the EC2 private-IP hostname (ip-x-x-x-x). Set this to a friendly name like 'paris-exit' to make the device easy to identify."
+  type        = string
+  default     = null
+}
+
 variable "tailscale_key_expiry_seconds" {
   description = "Lifetime of the generated Tailscale pre-auth key in seconds. Default 90 days."
   type        = number

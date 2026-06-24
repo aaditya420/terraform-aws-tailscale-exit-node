@@ -51,8 +51,9 @@ locals {
     var.tags
   )
 
-  # Tailscale device hostname: Ubuntu on AWS sets it to ip-<private-ip-dashes>
-  tailscale_device_name = "ip-${replace(aws_instance.tailscale_exit_node.private_ip, ".", "-")}"
+  # Tailscale device name: use friendly input if provided, else fall back to the
+  # AWS-generated ip-x-x-x-x hostname that Ubuntu sets automatically.
+  tailscale_device_name = var.tailscale_hostname != null ? var.tailscale_hostname : "ip-${replace(aws_instance.tailscale_exit_node.private_ip, ".", "-")}"
 
   # Stats interval in hours for AdGuard API
   adguard_stats_interval_hours = var.adguard_stats_interval_days * 24
