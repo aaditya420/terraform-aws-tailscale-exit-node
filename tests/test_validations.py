@@ -49,7 +49,7 @@ def test_tag_without_prefix_fails():
 
 def test_empty_api_key_fails():
     """Empty tailscale_api_key must fail variable validation."""
-    tf = Terraform(working_dir=str(INVALID / "bad_arch"))
+    tf = Terraform(working_dir=str(INVALID / "base"))
     tf.init(reconfigure=True, backend=False, capture_output=True)
     rc, _, stderr = tf.plan(
         var={"tailscale_api_key": "", "aws_region": "eu-west-3"},
@@ -62,7 +62,7 @@ def test_empty_api_key_fails():
 
 def test_invalid_timeout_format_fails():
     """device_join_timeout must match ^\d+[sm]$."""
-    tf = Terraform(working_dir=str(INVALID / "bad_arch"))
+    tf = Terraform(working_dir=str(INVALID / "base"))
     tf.init(reconfigure=True, backend=False, capture_output=True)
     rc, _, stderr = tf.plan(
         var={"tailscale_api_key": "dummy", "aws_region": "eu-west-3",

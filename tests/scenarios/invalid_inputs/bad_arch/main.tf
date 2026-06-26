@@ -7,13 +7,17 @@ terraform {
   }
 }
 
-variable "tailscale_api_key" { type = string; sensitive = true; default = "dummy" }
+variable "tailscale_api_key" {
+  type      = string
+  sensitive = true
+  default   = "dummy"
+}
 
-# t4g is Graviton (arm64) but architecture is set to x86_64 → precondition must fire
+# instance_architecture = "not-arm64" is invalid → variable validation fires before AWS auth.
 module "exit_node" {
   source                = "../../../../"
   region                = "eu-west-3"
   tailscale_api_key     = var.tailscale_api_key
   instance_type         = "t4g.nano"
-  instance_architecture = "x86_64"
+  instance_architecture = "not-arm64"
 }

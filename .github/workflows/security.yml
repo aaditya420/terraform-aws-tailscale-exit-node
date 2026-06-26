@@ -15,6 +15,7 @@ jobs:
       - uses: aquasecurity/tfsec-action@v1.0.3
         with:
           soft_fail: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
   checkov:
     name: checkov (policy compliance)
@@ -27,6 +28,9 @@ jobs:
           framework: terraform
           output_format: cli
           soft_fail: false
+          # CKV_AWS_8: no dedicated host (intentional), CKV2_AWS_41: no IAM role (exit node needs none)
+          skip_check: CKV_AWS_8,CKV2_AWS_41
+          skip_path: tests/,examples/
 
   trivy:
     name: trivy (secret scanning)

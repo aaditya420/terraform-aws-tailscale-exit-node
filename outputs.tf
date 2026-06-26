@@ -15,17 +15,17 @@ output "instance_private_ip" {
 
 output "tailscale_ip" {
   description = "Tailscale IPv4 address (100.x.x.x) of the exit node."
-  value       = data.tailscale_device.exit_node.addresses[0]
+  value       = local.tailscale_device_ip
 }
 
 output "tailscale_device_id" {
   description = "Tailscale device ID."
-  value       = data.tailscale_device.exit_node.id
+  value       = local.tailscale_device_id_val
 }
 
 output "adguard_url" {
   description = "AdGuard Home web UI URL (accessible over Tailscale). Empty when adguard_enabled = false."
-  value       = var.adguard_enabled ? "http://${data.tailscale_device.exit_node.addresses[0]}:${var.adguard_web_port}" : ""
+  value       = var.adguard_enabled ? "http://${local.tailscale_device_ip}:${var.adguard_web_port}" : ""
 }
 
 output "adguard_username" {

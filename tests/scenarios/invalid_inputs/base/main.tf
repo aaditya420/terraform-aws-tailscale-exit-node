@@ -13,9 +13,15 @@ variable "tailscale_api_key" {
   default   = "dummy"
 }
 
+variable "device_join_timeout" {
+  type    = string
+  default = "300s"
+}
+
+# All inputs valid by default; tests override one variable at a time to trigger its validation.
 module "exit_node" {
-  source            = "../../../../"
-  region            = "eu-west-3"
-  tailscale_api_key = var.tailscale_api_key
-  adguard_web_port  = 53
+  source              = "../../../../"
+  region              = "eu-west-3"
+  tailscale_api_key   = var.tailscale_api_key
+  device_join_timeout = var.device_join_timeout
 }

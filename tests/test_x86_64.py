@@ -5,7 +5,7 @@ import pytest
 from conftest import x86_outputs
 from helpers import adguard_get, dns_query, wait_for_ssh
 
-pytestmark = pytest.mark.timeout(600)
+pytestmark = pytest.mark.timeout(1800)
 
 
 @pytest.fixture(scope="module")

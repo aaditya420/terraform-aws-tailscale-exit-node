@@ -7,7 +7,11 @@ terraform {
   }
 }
 
-variable "tailscale_api_key" { type = string; sensitive = true; default = "dummy" }
+variable "tailscale_api_key" {
+  type      = string
+  sensitive = true
+  default   = "dummy"
+}
 
 module "exit_node" {
   source                  = "../../../../"

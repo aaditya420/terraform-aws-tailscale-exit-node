@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   fmt:
@@ -37,7 +38,8 @@ jobs:
         with:
           tflint_version: latest
       - run: tflint --init
-      - run: tflint --recursive
+      # Only lint the module root — test scenarios are fixture files, not module code
+      - run: tflint
 
   tfsec:
     name: tfsec
@@ -59,10 +61,14 @@ jobs:
           framework: terraform
           soft_fail: false
           skip_check: CKV_AWS_8,CKV2_AWS_41
+          # Test scenario files use relative module sources that checkov can't parse
+          skip_path: tests/,examples/
 
   docs-check:
     name: terraform-docs up-to-date
     runs-on: ubuntu-latest
+    # Only check on PRs — direct pushes to main race with docs.yml auto-commit
+    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
       - uses: terraform-docs/gh-actions@v1

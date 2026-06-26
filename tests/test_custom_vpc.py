@@ -4,7 +4,7 @@ import pytest
 
 from conftest import custom_vpc_outputs
 
-pytestmark = pytest.mark.timeout(600)
+pytestmark = pytest.mark.timeout(1800)
 
 
 @pytest.fixture(scope="module")

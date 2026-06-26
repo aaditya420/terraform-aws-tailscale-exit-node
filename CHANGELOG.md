@@ -18,3 +18,17 @@
 - All inputs validated with `validation` blocks and `lifecycle.precondition`
 - Works with default VPC or custom VPC/subnet
 - Optional SSH key pair generation; BYO key supported
+
+## v1.0.1 (2026-06-25)
+
+### Fix
+
+- correct security group description charset and stabilise CI workflows
+- resolve CI pipeline failures across lint, validate, and test jobs
+
+## v1.0.0 (2026-06-25)
+
+### Feat
+
+- add tailscale_hostname input; remove infracost workflow
+- initial release of terraform-aws-tailscale-exit-node module

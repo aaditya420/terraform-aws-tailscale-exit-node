@@ -50,7 +50,7 @@ rm /tmp/agh.tar.gz
 # ── Wait for AdGuard Home setup wizard to become available ────────────────────
 echo "Waiting for AdGuard Home..."
 for i in $(seq 1 30); do
-  HTTP=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:$${ADGUARD_WEB_PORT}/install/get_addresses" 2>/dev/null || true)
+  HTTP=$(curl -s -o /dev/null -w "%%{http_code}" "http://localhost:$${ADGUARD_WEB_PORT}/install/get_addresses" 2>/dev/null || true)
   if [ "$${HTTP}" = "200" ]; then
     echo "AdGuard Home ready (attempt $${i})"
     break

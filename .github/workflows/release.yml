@@ -11,8 +11,8 @@ jobs:
   release:
     name: Bump version & tag
     runs-on: ubuntu-latest
-    # Skip the commit that cz itself creates to avoid infinite loops
-    if: "!contains(github.event.head_commit.message, 'bump:')"
+    # Skip cz bump commits (infinite loop guard) and [skip ci] commits (docs auto-update)
+    if: "!contains(github.event.head_commit.message, 'bump:') && !contains(github.event.head_commit.message, '[skip ci]')"
 
     steps:
       - uses: actions/checkout@v4
@@ -44,6 +44,9 @@ jobs:
 
       - name: Push commit and tag
         if: steps.bump.outputs.bumped == 'true'
-        run: git push --follow-tags
+        run: |
+          # Rebase onto latest main in case docs.yml committed concurrently
+          git pull --rebase origin main
+          git push --follow-tags
 
       # The Terraform Registry detects the new tag automatically within ~10 min

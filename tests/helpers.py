@@ -76,7 +76,7 @@ def tailscale_api(api_key: str, method: str, path: str, **kwargs) -> requests.Re
     return requests.request(
         method,
         f"https://api.tailscale.com/api/v2{path}",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"Authorization": f"Bearer {api_key}", "Accept": "application/json"},
         timeout=15,
         **kwargs,
     )
@@ -89,10 +89,7 @@ def get_tailscale_device(api_key: str, device_id: str) -> dict:
 
 
 def get_tailscale_acl(api_key: str) -> dict:
-    resp = tailscale_api(api_key, "GET", "/tailnet/-/acl", headers={
-        "Authorization": f"Bearer {api_key}",
-        "Accept": "application/json",
-    })
+    resp = tailscale_api(api_key, "GET", "/tailnet/-/acl")
     resp.raise_for_status()
     return resp.json()
 

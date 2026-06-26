@@ -72,7 +72,7 @@ resource "aws_key_pair" "main" {
 
 resource "aws_security_group" "tailscale" {
   name        = "${var.name_prefix}-sg"
-  description = "Tailscale exit node — WireGuard + SSH"
+  description = "Tailscale exit node - WireGuard + SSH"
   vpc_id      = local.vpc_id
 
   ingress {
@@ -83,6 +83,7 @@ resource "aws_security_group" "tailscale" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  #checkov:skip=CKV_AWS_24:SSH source CIDR is intentionally user-controlled via ssh_allowed_cidr_blocks variable
   ingress {
     description = "SSH"
     from_port   = 22
@@ -91,7 +92,9 @@ resource "aws_security_group" "tailscale" {
     cidr_blocks = var.ssh_allowed_cidr_blocks
   }
 
+  #checkov:skip=CKV_AWS_382:Exit node must forward arbitrary outbound traffic — restricting egress breaks VPN functionality
   egress {
+    description = "All outbound traffic - required for VPN exit node packet forwarding."
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -104,8 +107,9 @@ resource "aws_security_group" "tailscale" {
 # ─── Tailscale ACL ───────────────────────────────────────────────────────────
 
 resource "tailscale_acl" "main" {
-  count = var.manage_tailscale_acl ? 1 : 0
-  acl   = local.acl_policy
+  count                      = var.manage_tailscale_acl ? 1 : 0
+  acl                        = local.acl_policy
+  overwrite_existing_content = true
 }
 
 # ─── Tailscale auth key (generated, tagged, pre-authorised) ──────────────────
@@ -125,7 +129,10 @@ resource "tailscale_tailnet_key" "exit_node" {
 resource "aws_instance" "tailscale_exit_node" {
   ami               = local.ami_id
   instance_type     = var.instance_type
-  availability_zone = local.availability_zone
+  # When subnet_id is explicit the subnet's AZ takes precedence; setting both
+  # would conflict if they differ (e.g. user picks subnet in AZ-b but the
+  # default AZ lookup resolves AZ-a).
+  availability_zone = var.subnet_id == null ? local.availability_zone : null
   subnet_id         = local.subnet_id
   key_name          = local.key_name
 
@@ -133,6 +140,15 @@ resource "aws_instance" "tailscale_exit_node" {
 
   # Mandatory for exit node — forwards packets destined for other hosts
   source_dest_check = false
+
+  monitoring    = true
+  ebs_optimized = true
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+  }
 
   user_data_replace_on_change = true
   user_data = templatefile("${path.module}/templates/user_data.sh.tftpl", {
@@ -179,12 +195,38 @@ resource "aws_instance" "tailscale_exit_node" {
   }
 }
 
-# ─── Tailscale device lookup (polls until device joins, up to device_join_timeout) ──
+# ─── Wait for EC2 user_data to run and the device to join the tailnet ────────
+# Using time_sleep (hashicorp/time) instead of data.tailscale_device.wait_for
+# because tailscale/tailscale v0.29+ runs provider-framework validators during
+# terraform validate with null values, causing any variable reference on wait_for
+# to fail with "unable to parse value as a duration". time_sleep uses the
+# older plugin-SDK and does not have this limitation.
 
-data "tailscale_device" "exit_node" {
-  name       = local.tailscale_device_name
-  wait_for   = var.device_join_timeout
-  depends_on = [aws_instance.tailscale_exit_node]
+resource "time_sleep" "wait_for_device" {
+  depends_on      = [aws_instance.tailscale_exit_node]
+  create_duration = var.device_join_timeout
+}
+
+# ─── Tailscale device lookup via API (hostname-based, provider-version agnostic) ─
+
+data "http" "tailscale_devices" {
+  url    = "https://api.tailscale.com/api/v2/tailnet/-/devices"
+  method = "GET"
+  request_headers = {
+    "Authorization" = "Bearer ${var.tailscale_api_key}"
+    "Accept"        = "application/json"
+  }
+  depends_on = [time_sleep.wait_for_device]
+
+  lifecycle {
+    postcondition {
+      condition = contains(
+        [for d in jsondecode(self.response_body).devices : d.hostname],
+        local.tailscale_device_name
+      )
+      error_message = "Device '${local.tailscale_device_name}' not found in tailnet after ${var.device_join_timeout}. Verify the EC2 instance user_data ran successfully."
+    }
+  }
 }
 
 # ─── Tailscale DNS automation ────────────────────────────────────────────────
@@ -196,7 +238,7 @@ resource "tailscale_dns_preferences" "main" {
 
 resource "tailscale_dns_nameservers" "adguard" {
   count       = var.adguard_enabled && var.set_adguard_as_tailnet_dns ? 1 : 0
-  nameservers = [data.tailscale_device.exit_node.addresses[0]]
+  nameservers = [local.tailscale_device_ip]
 
   depends_on = [tailscale_dns_preferences.main]
 }

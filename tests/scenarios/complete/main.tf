@@ -4,17 +4,30 @@ terraform {
     tailscale = { source = "tailscale/tailscale", version = "~> 0.16" }
     tls       = { source = "hashicorp/tls",       version = "~> 4.0" }
     random    = { source = "hashicorp/random",    version = "~> 3.0" }
+    http      = { source = "hashicorp/http",      version = "~> 3.0" }
   }
 }
 
-variable "tailscale_api_key" { type = string; sensitive = true }
-variable "aws_region"        { type = string; default = "eu-west-3" }
+variable "tailscale_api_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "aws_region" {
+  type    = string
+  default = "eu-west-3"
+}
+
+variable "run_id" {
+  type    = string
+  default = "local"
+}
 
 module "exit_node" {
   source = "../../../"
 
   region                = var.aws_region
-  name_prefix           = "ci-complete"
+  name_prefix           = "ci-complete-${var.run_id}"
   tags                  = { Environment = "ci", Scenario = "complete" }
   instance_type         = "t4g.micro"
   instance_architecture = "arm64"
@@ -23,7 +36,9 @@ module "exit_node" {
   tailscale_api_key            = var.tailscale_api_key
   tailscale_exit_node_tag      = "tag:exit-node"
   tailscale_key_expiry_seconds = 3600
-  device_join_timeout          = "300s"
+  tailscale_hostname           = "ci-complete-${var.run_id}"
+  manage_tailscale_acl         = false
+  device_join_timeout          = "600s"
   enable_magic_dns             = true
   set_adguard_as_tailnet_dns   = true
   adguard_enabled              = true
@@ -43,7 +58,13 @@ output "tailscale_ip"       { value = module.exit_node.tailscale_ip }
 output "tailscale_device_id" { value = module.exit_node.tailscale_device_id }
 output "adguard_url"        { value = module.exit_node.adguard_url }
 output "adguard_username"   { value = module.exit_node.adguard_username }
-output "adguard_password"   { value = module.exit_node.adguard_password; sensitive = true }
-output "private_key_pem"    { value = module.exit_node.private_key_pem;  sensitive = true }
-output "ssh_command"        { value = module.exit_node.ssh_command }
-output "ami_id"             { value = module.exit_node.ami_id }
+output "adguard_password" {
+  value     = module.exit_node.adguard_password
+  sensitive = true
+}
+output "private_key_pem" {
+  value     = module.exit_node.private_key_pem
+  sensitive = true
+}
+output "ssh_command" { value = module.exit_node.ssh_command }
+output "ami_id"      { value = module.exit_node.ami_id }

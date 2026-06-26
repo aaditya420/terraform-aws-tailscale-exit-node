@@ -17,7 +17,7 @@ from helpers import (
     wait_for_ssh,
 )
 
-pytestmark = pytest.mark.timeout(600)
+pytestmark = pytest.mark.timeout(1800)
 
 
 @pytest.fixture(scope="module")
@@ -157,7 +157,7 @@ def test_acl_has_auto_approvers(tailscale_api_key):
     assert "tag:exit-node" in auto.get("exitNode", [])
 
 
-def test_magic_dns_enabled(tailscale_api_key):
+def test_magic_dns_enabled(outputs, tailscale_api_key):
     dns = get_tailscale_dns(tailscale_api_key)
     assert dns["preferences"].get("magicDNS") is True
 

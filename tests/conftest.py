@@ -1,6 +1,7 @@
 """Shared fixtures for all Terraform module integration tests."""
 import json
 import os
+import subprocess
 import tempfile
 import time
 from pathlib import Path
@@ -50,13 +51,30 @@ def _make_tf_fixture(scenario: str):
             )
             assert rc == 0, f"terraform apply failed:\n{stderr}"
 
-            rc, raw, stderr = tf.output(json=IsFlagged, capture_output=True)
-            assert rc == 0, f"terraform output failed:\n{stderr}"
-            outputs = json.loads(raw)
+            # python-terraform's output() returns the parsed dict on success,
+            # not a (rc, stdout, stderr) tuple — use subprocess to avoid that quirk.
+            proc = subprocess.run(
+                ["terraform", "output", "-json"],
+                cwd=working_dir,
+                capture_output=True,
+                text=True,
+            )
+            assert proc.returncode == 0, f"terraform output failed:\n{proc.stderr}"
+            outputs = json.loads(proc.stdout)
             # Unwrap: {"key": {"value": ..., "sensitive": ...}} → {"key": ...}
             yield {k: v["value"] for k, v in outputs.items()}
         finally:
-            tf.destroy(auto_approve=True, var=tf_vars, capture_output=True)
+            # python_terraform uses deprecated -force flag; call terraform directly.
+            subprocess.run(
+                ["terraform", "destroy", "-auto-approve", "-input=false"],
+                cwd=working_dir,
+                env={
+                    **os.environ,
+                    "TF_VAR_tailscale_api_key": tailscale_api_key,
+                    "TF_VAR_aws_region": aws_region,
+                },
+                check=False,
+            )
 
     return tf_outputs
 
