@@ -31,7 +31,7 @@ jobs:
 
       - run: pytest tests/test_validations.py -v --junit-xml=results/validations.xml
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: results-validations
@@ -151,7 +151,7 @@ jobs:
             echo "No Tailscale device found with hostname '$HOSTNAME' (may not have joined or was already removed)"
           fi
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: results-${{ matrix.scenario }}
