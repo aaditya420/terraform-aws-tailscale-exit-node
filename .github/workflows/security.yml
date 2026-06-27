@@ -11,7 +11,7 @@ jobs:
     name: tfsec (IaC security)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: aquasecurity/tfsec-action@v1.0.3
         with:
           soft_fail: false
@@ -21,7 +21,7 @@ jobs:
     name: checkov (policy compliance)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: bridgecrewio/checkov-action@master
         with:
           directory: .
@@ -36,7 +36,7 @@ jobs:
     name: trivy (secret scanning)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
