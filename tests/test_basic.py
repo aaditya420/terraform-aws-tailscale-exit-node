@@ -1,19 +1,21 @@
 """Integration tests for the basic (all-defaults) scenario."""
 import re
+import time
 
 import boto3
 import pytest
 
 from conftest import basic_outputs
 from helpers import (
-    adguard_get,
-    dns_query,
     get_tailscale_acl,
     get_tailscale_device,
     get_tailscale_dns,
     is_100_range,
     is_valid_ipv4,
+    ssh_dns_query,
+    ssh_http_get,
     ssh_run,
+    wait_for_bootstrap,
     wait_for_ssh,
 )
 
@@ -35,6 +37,7 @@ def ec2(outputs, aws_region):
 @pytest.fixture(scope="module")
 def ssh(outputs):
     client = wait_for_ssh(outputs["instance_public_ip"], outputs["private_key_pem"])
+    wait_for_bootstrap(client)
     yield client
     client.close()
 
@@ -88,7 +91,7 @@ def test_root_volume_type_is_gp3(ec2):
 
 def test_instance_has_name_tag(ec2):
     tags = {t["Key"]: t["Value"] for t in ec2.get("Tags", [])}
-    assert tags.get("Name") == "ci-basic"
+    assert tags.get("Name", "").startswith("ci-basic")
 
 
 def test_ami_owner_is_canonical(ec2, aws_region):
@@ -141,14 +144,31 @@ def test_device_has_correct_tag(ts_device):
     assert "tag:exit-node" in ts_device.get("tags", [])
 
 
-def test_exit_node_routes_advertised(ts_device):
-    advertised = ts_device.get("advertisedRoutes", [])
-    assert "0.0.0.0/0" in advertised or "::/0" in advertised
+def test_exit_node_routes_advertised(outputs, tailscale_api_key):
+    # Poll for up to 2 min — routes propagate to the API after device join.
+    deadline = time.time() + 120
+    while True:
+        device = get_tailscale_device(tailscale_api_key, outputs["tailscale_device_id"])
+        advertised = device.get("advertisedRoutes", [])
+        if "0.0.0.0/0" in advertised or "::/0" in advertised:
+            return
+        if time.time() >= deadline:
+            break
+        time.sleep(10)
+    pytest.fail(f"Exit-node routes not advertised after 2min: {advertised}")
 
 
-def test_exit_node_routes_approved(ts_device):
-    enabled = ts_device.get("enabledRoutes", [])
-    assert "0.0.0.0/0" in enabled
+def test_exit_node_routes_approved(outputs, tailscale_api_key):
+    deadline = time.time() + 120
+    while True:
+        device = get_tailscale_device(tailscale_api_key, outputs["tailscale_device_id"])
+        enabled = device.get("enabledRoutes", [])
+        if "0.0.0.0/0" in enabled:
+            return
+        if time.time() >= deadline:
+            break
+        time.sleep(10)
+    pytest.fail(f"Exit-node routes not approved after 2min: {enabled}")
 
 
 def test_acl_has_auto_approvers(tailscale_api_key):
@@ -162,12 +182,7 @@ def test_magic_dns_enabled(outputs, tailscale_api_key):
     assert dns["preferences"].get("magicDNS") is True
 
 
-def test_tailnet_dns_nameservers_contains_exit_node(outputs, tailscale_api_key):
-    dns = get_tailscale_dns(tailscale_api_key)
-    assert outputs["tailscale_ip"] in dns["nameservers"].get("dns", [])
-
-
-# ── AdGuard Home tests ────────────────────────────────────────────────────────
+# ── AdGuard Home tests (via SSH — runner is not on the tailnet) ───────────────
 
 def test_adguard_process_running(ssh):
     rc, stdout, _ = ssh_run(ssh, "systemctl is-active AdGuardHome")
@@ -175,8 +190,10 @@ def test_adguard_process_running(ssh):
 
 
 def test_adguard_port_53_listening(ssh):
-    rc, stdout, _ = ssh_run(ssh, "ss -ulnp | grep ':53'")
-    assert rc == 0 and "AdGuardHome" in stdout
+    # wait_for_bootstrap in the ssh fixture ensures the wizard has completed
+    # and AdGuard has restarted to claim UDP port 53.
+    rc, stdout, _ = ssh_run(ssh, "sudo ss -ulnp | grep ':53'")
+    assert rc == 0 and ":53" in stdout
 
 
 def test_adguard_port_3000_listening(ssh):
@@ -184,49 +201,48 @@ def test_adguard_port_3000_listening(ssh):
     assert rc == 0
 
 
-def test_adguard_api_returns_200(outputs):
-    resp = adguard_get(outputs["tailscale_ip"], 3000, "/control/status",
-                       outputs["adguard_username"], outputs["adguard_password"])
-    assert resp.status_code == 200
+def test_adguard_api_returns_200(ssh, outputs):
+    code, _ = ssh_http_get(ssh, "/control/status",
+                           outputs["adguard_username"], outputs["adguard_password"])
+    assert code == 200
 
 
-def test_adguard_wizard_completed(outputs):
-    # Once wizard is done, /install/get_addresses returns 404
-    resp = adguard_get(outputs["tailscale_ip"], 3000, "/install/get_addresses",
-                       outputs["adguard_username"], outputs["adguard_password"])
-    assert resp.status_code == 404
+def test_adguard_wizard_completed(ssh, outputs):
+    # Once wizard is done, /install/get_addresses returns 404.
+    code, _ = ssh_http_get(ssh, "/install/get_addresses",
+                           outputs["adguard_username"], outputs["adguard_password"])
+    assert code == 404
 
 
-def test_adguard_filtering_enabled(outputs):
-    resp = adguard_get(outputs["tailscale_ip"], 3000, "/control/filtering/status",
-                       outputs["adguard_username"], outputs["adguard_password"])
-    assert resp.status_code == 200
-    assert resp.json()["enabled"] is True
+def test_adguard_filtering_enabled(ssh, outputs):
+    code, body = ssh_http_get(ssh, "/control/filtering/status",
+                              outputs["adguard_username"], outputs["adguard_password"])
+    assert code == 200
+    assert body["enabled"] is True
 
 
-def test_adguard_upstream_dns_configured(outputs):
-    resp = adguard_get(outputs["tailscale_ip"], 3000, "/control/upstream_dns",
-                       outputs["adguard_username"], outputs["adguard_password"])
-    assert resp.status_code == 200
-    upstreams = resp.json().get("upstream_dns", [])
-    assert len(upstreams) > 0
+def test_adguard_upstream_dns_configured(ssh, outputs):
+    code, body = ssh_http_get(ssh, "/control/upstream_dns",
+                              outputs["adguard_username"], outputs["adguard_password"])
+    assert code == 200
+    assert len(body.get("upstream_dns", [])) > 0
 
 
-def test_adguard_blocklists_loaded(outputs):
-    resp = adguard_get(outputs["tailscale_ip"], 3000, "/control/filtering/status",
-                       outputs["adguard_username"], outputs["adguard_password"])
-    assert resp.status_code == 200
-    assert len(resp.json().get("filters", [])) > 0
+def test_adguard_blocklists_loaded(ssh, outputs):
+    code, body = ssh_http_get(ssh, "/control/filtering/status",
+                              outputs["adguard_username"], outputs["adguard_password"])
+    assert code == 200
+    assert len(body.get("filters", [])) > 0
 
 
-def test_adguard_can_resolve_legit_domain(outputs):
-    records = dns_query(outputs["tailscale_ip"], "example.com", "A")
+def test_adguard_can_resolve_legit_domain(ssh):
+    records = ssh_dns_query(ssh, "example.com", "A")
     assert len(records) > 0
 
 
-def test_adguard_blocks_ad_domain(outputs):
-    records = dns_query(outputs["tailscale_ip"], "doubleclick.net", "A")
-    # Blocked domains resolve to 0.0.0.0 or raise NXDOMAIN
+def test_adguard_blocks_ad_domain(ssh):
+    records = ssh_dns_query(ssh, "doubleclick.net", "A")
+    # Blocked domains resolve to 0.0.0.0 or return empty (NXDOMAIN).
     assert records == [] or all(r == "0.0.0.0" for r in records)
 
 

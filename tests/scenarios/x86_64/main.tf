@@ -31,8 +31,9 @@ module "exit_node" {
   instance_type         = "t3.micro"
   instance_architecture = "x86_64"
   tailscale_hostname    = "ci-x86-${var.run_id}"
-  manage_tailscale_acl  = false
-  device_join_timeout   = "600s"
+  manage_tailscale_acl       = false
+  set_adguard_as_tailnet_dns = false
+  device_join_timeout        = "600s"
 }
 
 output "instance_id"        { value = module.exit_node.instance_id }

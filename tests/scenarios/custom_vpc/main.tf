@@ -42,8 +42,9 @@ module "exit_node" {
   vpc_id                = data.aws_vpc.default.id
   subnet_id             = data.aws_subnet.default.id
   tailscale_hostname    = "ci-custom-vpc-${var.run_id}"
-  manage_tailscale_acl  = false
-  device_join_timeout   = "600s"
+  manage_tailscale_acl       = false
+  set_adguard_as_tailnet_dns = false
+  device_join_timeout        = "600s"
 }
 
 output "instance_id"        { value = module.exit_node.instance_id }

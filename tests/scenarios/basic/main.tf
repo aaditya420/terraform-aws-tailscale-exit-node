@@ -29,8 +29,9 @@ module "exit_node" {
   tailscale_api_key = var.tailscale_api_key
   name_prefix           = "ci-basic-${var.run_id}"
   tailscale_hostname    = "ci-basic-${var.run_id}"
-  manage_tailscale_acl  = false
-  device_join_timeout   = "600s"
+  manage_tailscale_acl       = false
+  set_adguard_as_tailnet_dns = false
+  device_join_timeout        = "600s"
 }
 
 output "instance_id"        { value = module.exit_node.instance_id }

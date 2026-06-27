@@ -115,4 +115,5 @@ curl -sf -X POST "http://localhost:$${ADGUARD_WEB_PORT}/control/stats_config" \
 echo "AdGuard Home fully configured."
 %{ endif }
 
+touch /tmp/bootstrap-complete
 echo "Bootstrap complete."

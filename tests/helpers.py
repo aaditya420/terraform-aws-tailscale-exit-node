@@ -1,5 +1,7 @@
 """Reusable assertion helpers for Tailscale exit node tests."""
+import base64
 import io
+import json as _json
 import re
 import socket
 import time
@@ -24,11 +26,67 @@ def wait_for_ssh(host: str, key_pem: str, timeout: int = 120) -> paramiko.SSHCli
     raise TimeoutError(f"SSH to {host} did not become available within {timeout}s")
 
 
+def wait_for_bootstrap(client: paramiko.SSHClient, timeout: int = 600) -> None:
+    """Block until user_data has fully completed (sentinel file exists)."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        rc, _, _ = ssh_run(client, "test -f /tmp/bootstrap-complete")
+        if rc == 0:
+            return
+        time.sleep(10)
+    raise TimeoutError(f"Bootstrap did not complete within {timeout}s")
+
+
 def ssh_run(client: paramiko.SSHClient, cmd: str) -> tuple[int, str, str]:
     """Run a command over SSH, return (exit_code, stdout, stderr)."""
     _, stdout, stderr = client.exec_command(cmd)
     exit_code = stdout.channel.recv_exit_status()
     return exit_code, stdout.read().decode(), stderr.read().decode()
+
+
+def ssh_http_get(
+    client: paramiko.SSHClient,
+    path: str,
+    username: str = "",
+    password: str = "",
+    port: int = 3000,
+) -> tuple[int, dict | str]:
+    """HTTP GET to AdGuard Home (localhost) via SSH. Returns (http_code, body).
+
+    Body is a parsed dict when the response is valid JSON, otherwise a string.
+    Uses Basic-auth via base64 to avoid shell-quoting issues with special chars.
+    """
+    auth_flag = ""
+    if username:
+        b64 = base64.b64encode(f"{username}:{password}".encode()).decode()
+        auth_flag = f"-H 'Authorization: Basic {b64}'"
+
+    # Write body to a temp file; capture only the status code in stdout.
+    rc, code_str, _ = ssh_run(
+        client,
+        f"curl -s {auth_flag} -o /tmp/_agh_body -w '%{{http_code}}' "
+        f"http://127.0.0.1:{port}{path}",
+    )
+    code = int(code_str.strip()) if code_str.strip().isdigit() else 0
+
+    _, body_raw, _ = ssh_run(client, "cat /tmp/_agh_body 2>/dev/null")
+    try:
+        return code, _json.loads(body_raw)
+    except Exception:
+        return code, body_raw
+
+
+def ssh_dns_query(
+    client: paramiko.SSHClient,
+    name: str,
+    record_type: str = "A",
+    nameserver: str = "127.0.0.1",
+) -> list[str]:
+    """Run dig on the remote instance, return answer records as strings."""
+    rc, stdout, _ = ssh_run(client, f"dig @{nameserver} {name} {record_type} +short")
+    if rc != 0:
+        return []
+    return [ln.strip() for ln in stdout.splitlines() if ln.strip() and not ln.startswith(";")]
 
 
 def adguard_get(tailscale_ip: str, port: int, path: str, username: str, password: str) -> requests.Response:

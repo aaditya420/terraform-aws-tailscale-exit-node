@@ -119,6 +119,7 @@ jobs:
           terraform -chdir=tests/scenarios/${{ matrix.scenario }} destroy \
             -auto-approve \
             -input=false \
+            -lock=false \
             || true
 
       # Always delete the Tailscale device by hostname via API — handles the case
