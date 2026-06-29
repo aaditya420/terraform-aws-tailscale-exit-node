@@ -1,0 +1,158 @@
+name: Module Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ── Validation tests (no AWS deploy needed) ─────────────────────────────────
+  validations:
+    name: Validation Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.5"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r tests/requirements.txt
+
+      - run: pytest tests/test_validations.py -v --junit-xml=results/validations.xml
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-validations
+          path: results/
+
+  # ── One-shot ACL setup: runs before parallel scenarios to avoid race condition
+  setup-tailscale:
+    name: Setup Tailscale ACL
+    runs-on: ubuntu-latest
+    needs: validations
+    if: "!contains(github.actor, 'dependabot')"
+    steps:
+      - name: Configure tag:exit-node in tailnet ACL
+        env:
+          TAILSCALE_API_KEY: ${{ secrets.TAILSCALE_API_KEY }}
+        run: |
+          curl -fsS \
+            -X POST "https://api.tailscale.com/api/v2/tailnet/-/acl" \
+            -H "Authorization: Bearer $TAILSCALE_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "tagOwners": {"tag:exit-node": ["autogroup:admin"]},
+              "autoApprovers": {"exitNode": ["tag:exit-node"]},
+              "acls": [{"action": "accept", "src": ["*"], "dst": ["*:*"]}]
+            }'
+
+  # ── Integration tests (matrix, each deploys + destroys) ────────────────────
+  integration:
+    name: "${{ matrix.scenario }} scenario"
+    runs-on: ubuntu-latest
+    needs: [validations, setup-tailscale]
+    # Dependabot PRs don't receive repo secrets — skip AWS deploys for them
+    if: "!contains(github.actor, 'dependabot')"
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [basic, complete, no_adguard, x86_64, custom_vpc]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.5"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r tests/requirements.txt
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-3
+
+      # Pre-init the scenario so plan/apply is faster
+      - name: terraform init
+        run: |
+          terraform -chdir=tests/scenarios/${{ matrix.scenario }} init \
+            -reconfigure \
+            -input=false
+
+      - name: Run pytest for ${{ matrix.scenario }}
+        env:
+          TAILSCALE_API_KEY: ${{ secrets.TAILSCALE_API_KEY }}
+          AWS_DEFAULT_REGION: eu-west-3
+          TF_VAR_run_id: ${{ github.run_id }}
+        run: |
+          pytest tests/test_${{ matrix.scenario }}.py \
+            -v \
+            --timeout=1800 \
+            --junit-xml=results/${{ matrix.scenario }}.xml
+
+      # Always destroy — runs even when pytest fails
+      - name: terraform destroy (cleanup)
+        if: always()
+        env:
+          TF_VAR_tailscale_api_key: ${{ secrets.TAILSCALE_API_KEY }}
+          TF_VAR_aws_region: eu-west-3
+          TF_VAR_run_id: ${{ github.run_id }}
+        run: |
+          terraform -chdir=tests/scenarios/${{ matrix.scenario }} destroy \
+            -auto-approve \
+            -input=false \
+            -lock=false \
+            || true
+
+      # Always delete the Tailscale device by hostname via API — handles the case
+      # where the device joined the tailnet but terraform apply/destroy failed.
+      - name: Remove Tailscale device from tailnet
+        if: always()
+        env:
+          TAILSCALE_API_KEY: ${{ secrets.TAILSCALE_API_KEY }}
+        run: |
+          # Map scenario names to hostname prefixes (x86_64 uses ci-x86, underscores become hyphens)
+          case "${{ matrix.scenario }}" in
+            x86_64)     PREFIX="ci-x86" ;;
+            no_adguard) PREFIX="ci-no-adguard" ;;
+            custom_vpc) PREFIX="ci-custom-vpc" ;;
+            *)          PREFIX="ci-${{ matrix.scenario }}" ;;
+          esac
+          HOSTNAME="${PREFIX}-${{ github.run_id }}"
+          DEVICE_ID=$(curl -sf \
+            -H "Authorization: Bearer $TAILSCALE_API_KEY" \
+            "https://api.tailscale.com/api/v2/tailnet/-/devices" | \
+            jq -r --arg h "$HOSTNAME" '.devices[] | select(.hostname == $h) | .id' | head -1)
+          if [ -n "$DEVICE_ID" ]; then
+            curl -sf -X DELETE \
+              -H "Authorization: Bearer $TAILSCALE_API_KEY" \
+              "https://api.tailscale.com/api/v2/device/$DEVICE_ID" \
+              && echo "Deleted Tailscale device $HOSTNAME ($DEVICE_ID)" \
+              || echo "WARN: DELETE request failed for $HOSTNAME ($DEVICE_ID)"
+          else
+            echo "No Tailscale device found with hostname '$HOSTNAME' (may not have joined or was already removed)"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-${{ matrix.scenario }}
+          path: results/
