@@ -13,6 +13,12 @@ variable "tailscale_api_key" {
   sensitive = true
 }
 
+variable "adguard_password" {
+  type      = string
+  sensitive = true
+  default   = "CiT3stP@ss!"
+}
+
 variable "aws_region" {
   type    = string
   default = "eu-west-3"
@@ -45,7 +51,7 @@ module "exit_node" {
   adguard_version              = "v0.107.77"
   adguard_web_port             = 3000
   adguard_username             = "testadmin"
-  adguard_password             = "CiT3stP@ss!"
+  adguard_password             = var.adguard_password
   adguard_upstream_dns         = ["https://dns10.quad9.net/dns-query"]
   adguard_blocklist_urls       = ["https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt"]
   adguard_query_log_enabled    = true
