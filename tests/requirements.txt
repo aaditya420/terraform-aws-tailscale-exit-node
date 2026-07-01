@@ -1,4 +1,4 @@
-boto3>=1.34
+boto3>=1.43.38
 requests>=2.31
 paramiko>=3.4
 dnspython>=2.6
