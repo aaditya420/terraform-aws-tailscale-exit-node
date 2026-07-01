@@ -29,6 +29,12 @@
 - Works with default VPC or custom VPC/subnet
 - Optional SSH key pair generation; BYO key supported
 
+## v1.0.2 (2026-07-01)
+
+### Fix
+
+- gate tailnet DNS on AdGuard bootstrap completion
+
 ## v1.0.1 (2026-06-25)
 
 ### Fix
