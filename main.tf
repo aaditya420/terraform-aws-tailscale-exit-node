@@ -229,6 +229,30 @@ data "http" "tailscale_devices" {
   }
 }
 
+# ─── Wait for AdGuard Home bootstrap to complete before setting DNS ───────────
+# SSHs into the instance and polls /tmp/bootstrap-complete (written by
+# user_data at the very end) so tailnet DNS is only switched over once
+# AdGuard is fully configured and serving on port 53.
+# Only active when AdGuard is enabled, DNS will be set, and we own the key.
+# Falls back to time_sleep-only ordering when create_ssh_keypair = false.
+
+resource "null_resource" "wait_for_bootstrap" {
+  count      = var.adguard_enabled && var.set_adguard_as_tailnet_dns && var.create_ssh_keypair ? 1 : 0
+  depends_on = [time_sleep.wait_for_device]
+
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    host        = aws_instance.tailscale_exit_node.public_ip
+    private_key = tls_private_key.ssh[0].private_key_pem
+    timeout     = "10m"
+  }
+
+  provisioner "remote-exec" {
+    inline = ["timeout 600 bash -c 'until [ -f /tmp/bootstrap-complete ]; do sleep 5; done'"]
+  }
+}
+
 # ─── Tailscale DNS automation ────────────────────────────────────────────────
 
 resource "tailscale_dns_preferences" "main" {
@@ -240,5 +264,8 @@ resource "tailscale_dns_nameservers" "adguard" {
   count       = var.adguard_enabled && var.set_adguard_as_tailnet_dns ? 1 : 0
   nameservers = [local.tailscale_device_ip]
 
-  depends_on = [tailscale_dns_preferences.main]
+  depends_on = [
+    tailscale_dns_preferences.main,
+    null_resource.wait_for_bootstrap,
+  ]
 }

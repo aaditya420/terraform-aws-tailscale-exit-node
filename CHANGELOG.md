@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.2] - 2026-07-02
+
+### Bug Fixes
+
+- Fix tailnet DNS switching before AdGuard Home is ready: add `null_resource` with `remote-exec` that SSHs into the instance and polls `/tmp/bootstrap-complete` before setting `tailscale_dns_nameservers`, preventing internet loss during deployment when AdGuard is enabled
+
+### Changes
+
+- Add `hashicorp/null ~> 3.0` provider dependency (used for bootstrap gate)
+
 ## [1.0.0] - 2026-06-25
 
 ### Features
