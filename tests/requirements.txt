@@ -3,6 +3,6 @@ requests>=2.31
 paramiko>=3.4
 dnspython>=2.6
 python-terraform>=0.10
-pytest>=8.0
+pytest>=9.1.1
 pytest-timeout>=2.3
 pytest-xdist>=3.5
