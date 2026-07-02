@@ -46,8 +46,7 @@ No other published Terraform module on the registry combines:
 
 ```hcl
 module "exit_node" {
-  source  = "aaditya420/tailscale-exit-node/aws"
-  version = "~> 1.0"
+  source = "git::https://github.com/aaditya420/terraform-aws-tailscale-exit-node.git?ref=v1.0.3"
 
   region            = "eu-west-3"
   tailscale_api_key = var.tailscale_api_key
@@ -71,8 +70,7 @@ terraform output -raw adguard_password
 
 ```hcl
 module "exit_node" {
-  source  = "aaditya420/tailscale-exit-node/aws"
-  version = "~> 1.0"
+  source = "git::https://github.com/aaditya420/terraform-aws-tailscale-exit-node.git?ref=v1.0.3"
 
   region                = "us-east-1"
   availability_zone     = "us-east-1b"
@@ -103,8 +101,7 @@ module "exit_node" {
 
 ```hcl
 module "exit_node" {
-  source  = "aaditya420/tailscale-exit-node/aws"
-  version = "~> 1.0"
+  source = "git::https://github.com/aaditya420/terraform-aws-tailscale-exit-node.git?ref=v1.0.3"
 
   region                     = "ap-south-1"
   tailscale_api_key          = var.tailscale_api_key
@@ -257,12 +254,9 @@ No modules.
 - The `tailscale_tailnet_key` resource depends on `tailscale_acl` to ensure the tag exists before the key is generated with that tag
 - `tailscale_dns_nameservers` depends on `tailscale_dns_preferences` (MagicDNS) to ensure the preference is applied before nameservers propagate
 
-## Publishing to the Terraform Registry
+## Versioning
 
-1. Create a public GitHub repo named exactly `terraform-aws-tailscale-exit-node`
-2. Push this code with at least one `v*` tag (`git tag v1.0.0 && git push --tags`)
-3. Go to `registry.terraform.io` → sign in with GitHub → Publish → Module → select the repo
-4. The registry indexes within ~10 minutes of each new tag
+This module is consumed directly from GitHub via the `git::` source syntax, not the Terraform Registry. Pin to a specific release with `?ref=<tag>` (e.g. `?ref=v1.0.3`), or omit `ref` to track the default branch. Tags are pushed with `git tag vX.Y.Z && git push --tags`.
 
 ## License
 

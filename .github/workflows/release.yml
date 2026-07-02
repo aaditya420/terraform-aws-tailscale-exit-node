@@ -48,5 +48,3 @@ jobs:
           # Rebase onto latest main in case docs.yml committed concurrently
           git pull --rebase origin main
           git push --follow-tags
-
-      # The Terraform Registry detects the new tag automatically within ~10 min

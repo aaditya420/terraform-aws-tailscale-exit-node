@@ -1,4 +1,4 @@
-name: Notify Registry Release
+name: Create Release
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   github-release:
-    name: Create GitHub Release with registry link
+    name: Create GitHub Release with usage snippet
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,14 +24,11 @@ jobs:
         with:
           generate_release_notes: true
           body: |
-            ## Terraform Registry
-
-            This version is now available at the Terraform Registry (allow up to 10 min for indexing):
+            ## Usage
 
             ```hcl
             module "exit_node" {
-              source  = "aaditya420/tailscale-exit-node/aws"
-              version = "~> ${{ steps.version.outputs.VERSION }}"
+              source = "git::https://github.com/aaditya420/terraform-aws-tailscale-exit-node.git?ref=v${{ steps.version.outputs.VERSION }}"
 
               region            = "eu-west-3"
               tailscale_api_key = var.tailscale_api_key
