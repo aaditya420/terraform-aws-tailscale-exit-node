@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.3] - 2026-07-02
+
+### Bug Fixes
+
+- Prevent OOM kills on low-memory instances (`t4g.nano`/`t4g.micro`): create a 512 MB swap file early in `user_data` so `unattended-upgrades` cannot exhaust RAM and destabilise AdGuard or sshd
+- Prevent complete DNS outage when DoH upstreams are unavailable: configure AdGuard `fallback_dns` (default `["1.1.1.1", "9.9.9.9"]`) so plain DNS handles queries when Quad9/Cloudflare DoH time out
+
+### Changes
+
+- Add `adguard_fallback_dns` input variable (default `["1.1.1.1", "9.9.9.9"]`)
+
 ## [1.0.2] - 2026-07-02
 
 ### Bug Fixes

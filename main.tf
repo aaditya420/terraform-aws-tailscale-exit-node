@@ -164,6 +164,7 @@ resource "aws_instance" "tailscale_exit_node" {
     adguard_username             = var.adguard_username
     adguard_password             = local.adguard_password
     adguard_upstream_dns_json    = jsonencode(var.adguard_upstream_dns)
+    adguard_fallback_dns_json    = jsonencode(var.adguard_fallback_dns)
     adguard_blocklist_urls       = var.adguard_blocklist_urls
     adguard_enable_safe_browsing = var.adguard_enable_safe_browsing
     adguard_enable_safesearch    = var.adguard_enable_safesearch
