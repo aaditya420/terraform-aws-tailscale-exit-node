@@ -143,6 +143,7 @@ Storage (8 GiB gp3) adds ~$0.64/month.
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 5.0 |
 | <a name="requirement_http"></a> [http](#requirement\_http) | ~> 3.0 |
+| <a name="requirement_null"></a> [null](#requirement\_null) | ~> 3.0 |
 | <a name="requirement_random"></a> [random](#requirement\_random) | ~> 3.0 |
 | <a name="requirement_tailscale"></a> [tailscale](#requirement\_tailscale) | ~> 0.16 |
 | <a name="requirement_time"></a> [time](#requirement\_time) | ~> 0.9 |
@@ -154,6 +155,7 @@ Storage (8 GiB gp3) adds ~$0.64/month.
 |------|---------|
 | <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 5.0 |
 | <a name="provider_http"></a> [http](#provider\_http) | ~> 3.0 |
+| <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
 | <a name="provider_random"></a> [random](#provider\_random) | ~> 3.0 |
 | <a name="provider_tailscale"></a> [tailscale](#provider\_tailscale) | ~> 0.16 |
 | <a name="provider_time"></a> [time](#provider\_time) | ~> 0.9 |
@@ -170,6 +172,7 @@ No modules.
 | [aws_instance.tailscale_exit_node](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance) | resource |
 | [aws_key_pair.main](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/key_pair) | resource |
 | [aws_security_group.tailscale](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
+| [null_resource.wait_for_bootstrap](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 | [random_password.adguard](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |
 | [tailscale_acl.main](https://registry.terraform.io/providers/tailscale/tailscale/latest/docs/resources/acl) | resource |
 | [tailscale_dns_nameservers.adguard](https://registry.terraform.io/providers/tailscale/tailscale/latest/docs/resources/dns_nameservers) | resource |
@@ -191,6 +194,7 @@ No modules.
 | <a name="input_adguard_enable_safe_browsing"></a> [adguard\_enable\_safe\_browsing](#input\_adguard\_enable\_safe\_browsing) | Enable AdGuard Home safe browsing (blocks malware/phishing domains). | `bool` | `false` | no |
 | <a name="input_adguard_enable_safesearch"></a> [adguard\_enable\_safesearch](#input\_adguard\_enable\_safesearch) | Enable safe search enforcement across search engines. | `bool` | `false` | no |
 | <a name="input_adguard_enabled"></a> [adguard\_enabled](#input\_adguard\_enabled) | Install and configure AdGuard Home on the exit node. | `bool` | `true` | no |
+| <a name="input_adguard_fallback_dns"></a> [adguard\_fallback\_dns](#input\_adguard\_fallback\_dns) | Fallback DNS resolvers used when all upstream\_dns servers fail. Plain DNS here ensures the tailnet never loses DNS entirely if DoH is unavailable. | `list(string)` | <pre>[<br/>  "1.1.1.1",<br/>  "9.9.9.9"<br/>]</pre> | no |
 | <a name="input_adguard_password"></a> [adguard\_password](#input\_adguard\_password) | Admin password for AdGuard Home. Auto-generated (20 chars, mixed) if null. | `string` | `null` | no |
 | <a name="input_adguard_query_log_enabled"></a> [adguard\_query\_log\_enabled](#input\_adguard\_query\_log\_enabled) | Enable the query log in AdGuard Home. | `bool` | `true` | no |
 | <a name="input_adguard_stats_interval_days"></a> [adguard\_stats\_interval\_days](#input\_adguard\_stats\_interval\_days) | Number of days to retain statistics in AdGuard Home. | `number` | `7` | no |
