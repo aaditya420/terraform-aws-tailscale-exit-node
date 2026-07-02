@@ -262,6 +262,12 @@ variable "adguard_upstream_dns" {
   ]
 }
 
+variable "adguard_fallback_dns" {
+  description = "Fallback DNS resolvers used when all upstream_dns servers fail. Plain DNS here ensures the tailnet never loses DNS entirely if DoH is unavailable."
+  type        = list(string)
+  default     = ["1.1.1.1", "9.9.9.9"]
+}
+
 variable "adguard_blocklist_urls" {
   description = "Filter list URLs to add to AdGuard Home on first boot."
   type        = list(string)
