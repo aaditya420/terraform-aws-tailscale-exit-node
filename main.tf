@@ -9,6 +9,7 @@ provider "tailscale" {
 # ─── Data sources ─────────────────────────────────────────────────────────────
 
 data "aws_availability_zones" "available" {
+  #checkov:skip=CKV_AWS_394:Region-agnostic module. Zone names differ per region, so they cannot be pinned here; only the first zone is used, and only when availability_zone is unset.
   state = "available"
 }
 
