@@ -42,9 +42,63 @@ jobs:
             echo "Nothing to bump — no conventional commits since last tag."
           fi
 
+      # cz creates a lightweight tag, and git push --follow-tags only pushes annotated
+      # tags, so the tag never reached GitHub. Tag again after the rebase (which can
+      # move the bump commit) and push the tag by name.
       - name: Push commit and tag
         if: steps.bump.outputs.bumped == 'true'
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
         run: |
           # Rebase onto latest main in case docs.yml committed concurrently
           git pull --rebase origin main
-          git push --follow-tags
+          git tag -f -a "v${VERSION}" -m "v${VERSION}"
+          git push origin HEAD:main
+          git push origin "refs/tags/v${VERSION}"
+
+      # Self-heal: if the version in pyproject.toml has no tag yet (a bump whose tag
+      # was never pushed), tag its bump commit now.
+      - name: Tag a bumped version that was never tagged
+        id: backfill
+        if: steps.bump.outputs.bumped != 'true'
+        run: |
+          VERSION=$(cz version --project)
+          if git rev-parse -q --verify "refs/tags/v${VERSION}" >/dev/null; then
+            echo "v${VERSION} is already tagged."
+            exit 0
+          fi
+          SHA=$(git log -1 --format=%H --fixed-strings --grep="→ ${VERSION} [skip ci]")
+          if [ -z "${SHA}" ]; then
+            echo "::warning::pyproject.toml says ${VERSION} but no bump commit for it was found; not tagging."
+            exit 0
+          fi
+          git tag -a "v${VERSION}" -m "v${VERSION}" "${SHA}"
+          git push origin "refs/tags/v${VERSION}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      # Tags pushed with GITHUB_TOKEN don't trigger other workflows, so github-release.yml
+      # never runs for them. Create the release here, with the same usage snippet and
+      # GitHub's generated notes appended.
+      - name: Create the GitHub release
+        if: steps.bump.outputs.bumped == 'true' || steps.backfill.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.bump.outputs.version || steps.backfill.outputs.version }}
+        run: |
+          body=$(cat <<EOF
+          ## Usage
+
+          \`\`\`hcl
+          module "exit_node" {
+            source = "git::https://github.com/${GITHUB_REPOSITORY}.git?ref=v${VERSION}"
+
+            region            = "eu-west-3"
+            tailscale_api_key = var.tailscale_api_key
+          }
+          \`\`\`
+          EOF
+          )
+          gh api "repos/${GITHUB_REPOSITORY}/releases" \
+            -f tag_name="v${VERSION}" -f name="v${VERSION}" \
+            -f body="$body" \
+            -F generate_release_notes=true --jq .html_url
