@@ -1,5 +1,21 @@
 # terraform-aws-tailscale-exit-node
 
+[![Terraform Registry](https://img.shields.io/badge/Terraform%20Registry-aaditya420%2Ftailscale--exit--node%2Faws-844FBA?logo=terraform&logoColor=white)](https://registry.terraform.io/modules/aaditya420/tailscale-exit-node/aws/latest)
+[![Registry downloads](https://img.shields.io/terraform/module/dt/aaditya420/tailscale-exit-node/aws?logo=terraform&logoColor=white&label=downloads&color=844FBA)](https://registry.terraform.io/modules/aaditya420/tailscale-exit-node/aws/latest)
+[![Latest release](https://img.shields.io/github/v/release/aaditya420/terraform-aws-tailscale-exit-node?sort=semver&logo=github&label=release)](https://github.com/aaditya420/terraform-aws-tailscale-exit-node/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/aaditya420/terraform-aws-tailscale-exit-node?color=blue)](LICENSE)
+
+[![Lint & Validate](https://github.com/aaditya420/terraform-aws-tailscale-exit-node/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/aaditya420/terraform-aws-tailscale-exit-node/actions/workflows/lint.yml)
+[![Module Tests](https://github.com/aaditya420/terraform-aws-tailscale-exit-node/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/aaditya420/terraform-aws-tailscale-exit-node/actions/workflows/tests.yml)
+[![Security Scan](https://github.com/aaditya420/terraform-aws-tailscale-exit-node/actions/workflows/security.yml/badge.svg?branch=main)](https://github.com/aaditya420/terraform-aws-tailscale-exit-node/actions/workflows/security.yml)
+
+[![Terraform](https://img.shields.io/badge/Terraform-%E2%89%A5%201.5-844FBA?logo=terraform&logoColor=white)](https://developer.hashicorp.com/terraform)
+[![AWS provider](https://img.shields.io/badge/AWS%20provider-~%3E%205.0-FF9900)](https://registry.terraform.io/providers/hashicorp/aws/latest)
+[![Tailscale provider](https://img.shields.io/badge/Tailscale%20provider-~%3E%200.16-242424?logo=tailscale&logoColor=white)](https://registry.terraform.io/providers/tailscale/tailscale/latest)
+[![AdGuard Home](https://img.shields.io/badge/AdGuard%20Home-DNS%20filtering-68BC71?logo=adguard&logoColor=white)](https://github.com/AdguardTeam/AdGuardHome)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-FE5196?logo=conventionalcommits&logoColor=white)](https://www.conventionalcommits.org)
+[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-025E8C?logo=dependabot&logoColor=white)](.github/dependabot.yml)
+
 A production-ready Terraform module that deploys a fully automated Tailscale VPN exit node on AWS EC2, with AdGuard Home for DNS-level ad and tracker blocking — all wired together end-to-end with zero manual steps after `terraform apply`.
 
 ## What it does
@@ -42,11 +58,14 @@ No other published Terraform module on the registry combines:
 
 ## Usage
 
+The module is published on the [Terraform Registry](https://registry.terraform.io/modules/aaditya420/tailscale-exit-node/aws/latest). `version = "~> 1.0"` picks up 1.x fixes; pin an exact version such as `"1.0.4"` for fully repeatable builds.
+
 ### Minimal (all defaults)
 
 ```hcl
 module "exit_node" {
-  source = "git::https://github.com/aaditya420/terraform-aws-tailscale-exit-node.git?ref=v1.0.3"
+  source  = "aaditya420/tailscale-exit-node/aws"
+  version = "~> 1.0"
 
   region            = "eu-west-3"
   tailscale_api_key = var.tailscale_api_key
@@ -70,7 +89,8 @@ terraform output -raw adguard_password
 
 ```hcl
 module "exit_node" {
-  source = "git::https://github.com/aaditya420/terraform-aws-tailscale-exit-node.git?ref=v1.0.3"
+  source  = "aaditya420/tailscale-exit-node/aws"
+  version = "~> 1.0"
 
   region                = "us-east-1"
   availability_zone     = "us-east-1b"
@@ -101,7 +121,8 @@ module "exit_node" {
 
 ```hcl
 module "exit_node" {
-  source = "git::https://github.com/aaditya420/terraform-aws-tailscale-exit-node.git?ref=v1.0.3"
+  source  = "aaditya420/tailscale-exit-node/aws"
+  version = "~> 1.0"
 
   region                     = "ap-south-1"
   tailscale_api_key          = var.tailscale_api_key
@@ -256,7 +277,13 @@ No modules.
 
 ## Versioning
 
-This module is consumed directly from GitHub via the `git::` source syntax, not the Terraform Registry. Pin to a specific release with `?ref=<tag>` (e.g. `?ref=v1.0.3`), or omit `ref` to track the default branch. Tags are pushed with `git tag vX.Y.Z && git push --tags`.
+Releases follow [Semantic Versioning](https://semver.org) and are published to the [Terraform Registry](https://registry.terraform.io/modules/aaditya420/tailscale-exit-node/aws/latest) from Git tags. Every merge to `main` that contains a `fix:` or `feat:` commit is tagged and released automatically; see [CHANGELOG.md](CHANGELOG.md) and the [GitHub releases](https://github.com/aaditya420/terraform-aws-tailscale-exit-node/releases).
+
+To use the module straight from GitHub instead of the registry, pin a tag:
+
+```hcl
+source = "git::https://github.com/aaditya420/terraform-aws-tailscale-exit-node.git?ref=v1.0.4"
+```
 
 ## License
 

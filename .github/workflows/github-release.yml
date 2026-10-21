@@ -28,7 +28,8 @@ jobs:
 
             ```hcl
             module "exit_node" {
-              source = "git::https://github.com/aaditya420/terraform-aws-tailscale-exit-node.git?ref=v${{ steps.version.outputs.VERSION }}"
+              source  = "aaditya420/tailscale-exit-node/aws"
+              version = "${{ steps.version.outputs.VERSION }}"
 
               region            = "eu-west-3"
               tailscale_api_key = var.tailscale_api_key
