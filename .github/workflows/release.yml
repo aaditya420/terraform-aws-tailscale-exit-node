@@ -31,6 +31,27 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+      # Self-heal first: if the version in pyproject.toml has no tag (a bump whose tag
+      # was never pushed, like v1.0.4), tag its bump commit. This must run before
+      # cz bump, which would otherwise treat a missing tag as "no release yet" and
+      # compute the next version from the whole history.
+      - name: Tag a bumped version that was never tagged
+        id: backfill
+        run: |
+          VERSION=$(cz version --project)
+          if git rev-parse -q --verify "refs/tags/v${VERSION}" >/dev/null; then
+            echo "v${VERSION} is already tagged."
+            exit 0
+          fi
+          SHA=$(git log -1 --format=%H --fixed-strings --grep="→ ${VERSION} [skip ci]")
+          if [ -z "${SHA}" ]; then
+            echo "::warning::pyproject.toml says ${VERSION} but no bump commit for it was found; not tagging."
+            exit 0
+          fi
+          git tag -a "v${VERSION}" -m "v${VERSION}" "${SHA}"
+          git push origin "refs/tags/v${VERSION}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
       - name: Bump version and generate changelog
         id: bump
         run: |
@@ -42,9 +63,45 @@ jobs:
             echo "Nothing to bump — no conventional commits since last tag."
           fi
 
+      # cz creates a lightweight tag, and git push --follow-tags only pushes annotated
+      # tags, so the tag never reached GitHub. Tag again after the rebase (which can
+      # move the bump commit) and push the tag by name.
       - name: Push commit and tag
         if: steps.bump.outputs.bumped == 'true'
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
         run: |
           # Rebase onto latest main in case docs.yml committed concurrently
           git pull --rebase origin main
-          git push --follow-tags
+          git tag -f -a "v${VERSION}" -m "v${VERSION}"
+          git push origin HEAD:main
+          git push origin "refs/tags/v${VERSION}"
+
+      # Tags pushed with GITHUB_TOKEN don't trigger other workflows, so github-release.yml
+      # never runs for them. Create each new release here, with the same usage snippet
+      # and GitHub's generated notes appended.
+      - name: Create the GitHub releases
+        if: steps.backfill.outputs.version != '' || steps.bump.outputs.bumped == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSIONS: ${{ steps.backfill.outputs.version }} ${{ steps.bump.outputs.version }}
+        run: |
+          for VERSION in ${VERSIONS}; do
+            body=$(cat <<EOF
+          ## Usage
+
+          \`\`\`hcl
+          module "exit_node" {
+            source = "git::https://github.com/${GITHUB_REPOSITORY}.git?ref=v${VERSION}"
+
+            region            = "eu-west-3"
+            tailscale_api_key = var.tailscale_api_key
+          }
+          \`\`\`
+          EOF
+          )
+            gh api "repos/${GITHUB_REPOSITORY}/releases" \
+              -f tag_name="v${VERSION}" -f name="v${VERSION}" \
+              -f body="$body" \
+              -F generate_release_notes=true --jq .html_url
+          done
