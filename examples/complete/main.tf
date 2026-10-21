@@ -57,7 +57,10 @@ output "adguard_url"      { value = module.exit_node.adguard_url }
 output "tailscale_ip"     { value = module.exit_node.tailscale_ip }
 output "ssh_command"      { value = module.exit_node.ssh_command }
 output "instance_id"      { value = module.exit_node.instance_id }
-output "adguard_password" { value = module.exit_node.adguard_password; sensitive = true }
+output "adguard_password" {
+  value     = module.exit_node.adguard_password
+  sensitive = true
+}
 
 resource "local_file" "private_key" {
   content         = module.exit_node.private_key_pem
