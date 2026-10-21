@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.5 (2026-10-21)
+
+### Fix
+
+- **docs**: use the Terraform Registry source and add README badges (#33)
+
 ## v1.0.4 (2026-10-21)
 
 ### Fix
