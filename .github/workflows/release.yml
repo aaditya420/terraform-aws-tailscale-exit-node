@@ -31,6 +31,27 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+      # Self-heal first: if the version in pyproject.toml has no tag (a bump whose tag
+      # was never pushed, like v1.0.4), tag its bump commit. This must run before
+      # cz bump, which would otherwise treat a missing tag as "no release yet" and
+      # compute the next version from the whole history.
+      - name: Tag a bumped version that was never tagged
+        id: backfill
+        run: |
+          VERSION=$(cz version --project)
+          if git rev-parse -q --verify "refs/tags/v${VERSION}" >/dev/null; then
+            echo "v${VERSION} is already tagged."
+            exit 0
+          fi
+          SHA=$(git log -1 --format=%H --fixed-strings --grep="→ ${VERSION} [skip ci]")
+          if [ -z "${SHA}" ]; then
+            echo "::warning::pyproject.toml says ${VERSION} but no bump commit for it was found; not tagging."
+            exit 0
+          fi
+          git tag -a "v${VERSION}" -m "v${VERSION}" "${SHA}"
+          git push origin "refs/tags/v${VERSION}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
       - name: Bump version and generate changelog
         id: bump
         run: |
@@ -56,36 +77,17 @@ jobs:
           git push origin HEAD:main
           git push origin "refs/tags/v${VERSION}"
 
-      # Self-heal: if the version in pyproject.toml has no tag yet (a bump whose tag
-      # was never pushed), tag its bump commit now.
-      - name: Tag a bumped version that was never tagged
-        id: backfill
-        if: steps.bump.outputs.bumped != 'true'
-        run: |
-          VERSION=$(cz version --project)
-          if git rev-parse -q --verify "refs/tags/v${VERSION}" >/dev/null; then
-            echo "v${VERSION} is already tagged."
-            exit 0
-          fi
-          SHA=$(git log -1 --format=%H --fixed-strings --grep="→ ${VERSION} [skip ci]")
-          if [ -z "${SHA}" ]; then
-            echo "::warning::pyproject.toml says ${VERSION} but no bump commit for it was found; not tagging."
-            exit 0
-          fi
-          git tag -a "v${VERSION}" -m "v${VERSION}" "${SHA}"
-          git push origin "refs/tags/v${VERSION}"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-
       # Tags pushed with GITHUB_TOKEN don't trigger other workflows, so github-release.yml
-      # never runs for them. Create the release here, with the same usage snippet and
-      # GitHub's generated notes appended.
-      - name: Create the GitHub release
-        if: steps.bump.outputs.bumped == 'true' || steps.backfill.outputs.version != ''
+      # never runs for them. Create each new release here, with the same usage snippet
+      # and GitHub's generated notes appended.
+      - name: Create the GitHub releases
+        if: steps.backfill.outputs.version != '' || steps.bump.outputs.bumped == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.bump.outputs.version || steps.backfill.outputs.version }}
+          VERSIONS: ${{ steps.backfill.outputs.version }} ${{ steps.bump.outputs.version }}
         run: |
-          body=$(cat <<EOF
+          for VERSION in ${VERSIONS}; do
+            body=$(cat <<EOF
           ## Usage
 
           \`\`\`hcl
@@ -98,7 +100,8 @@ jobs:
           \`\`\`
           EOF
           )
-          gh api "repos/${GITHUB_REPOSITORY}/releases" \
-            -f tag_name="v${VERSION}" -f name="v${VERSION}" \
-            -f body="$body" \
-            -F generate_release_notes=true --jq .html_url
+            gh api "repos/${GITHUB_REPOSITORY}/releases" \
+              -f tag_name="v${VERSION}" -f name="v${VERSION}" \
+              -f body="$body" \
+              -F generate_release_notes=true --jq .html_url
+          done
