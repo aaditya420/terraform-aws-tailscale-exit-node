@@ -15,8 +15,16 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "~> 1.5"
-      - run: terraform fmt -check -recursive
+      - name: terraform fmt -check
         working-directory: .
+        # On failure, name each unformatted file as an annotation so it shows on the pull request.
+        run: |
+          if ! terraform fmt -check -recursive -diff; then
+            terraform fmt -check -recursive -list=true | while read -r f; do
+              echo "::error file=${f}::Not formatted. Run terraform fmt -recursive and commit the result."
+            done
+            exit 1
+          fi
 
   validate:
     name: terraform validate
