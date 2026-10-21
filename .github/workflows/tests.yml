@@ -47,8 +47,13 @@ jobs:
       - name: Configure tag:exit-node in tailnet ACL
         env:
           TAILSCALE_API_KEY: ${{ secrets.TAILSCALE_API_KEY }}
+        # On failure, report the HTTP status and Tailscale's error message (never the key).
         run: |
-          curl -fsS \
+          if [ -z "$TAILSCALE_API_KEY" ]; then
+            echo "::error title=Tailscale ACL setup::The TAILSCALE_API_KEY secret is empty or not available to this run."
+            exit 1
+          fi
+          code=$(curl -sS -o /tmp/acl_resp.json -w '%{http_code}' \
             -X POST "https://api.tailscale.com/api/v2/tailnet/-/acl" \
             -H "Authorization: Bearer $TAILSCALE_API_KEY" \
             -H "Content-Type: application/json" \
@@ -56,7 +61,13 @@ jobs:
               "tagOwners": {"tag:exit-node": ["autogroup:admin"]},
               "autoApprovers": {"exitNode": ["tag:exit-node"]},
               "acls": [{"action": "accept", "src": ["*"], "dst": ["*:*"]}]
-            }'
+            }')
+          if [ "$code" -ge 300 ]; then
+            msg=$(jq -r '.message // empty' /tmp/acl_resp.json 2>/dev/null | head -c 300)
+            echo "::error title=Tailscale ACL setup::Tailscale API returned HTTP ${code}: ${msg:-no message}"
+            exit 1
+          fi
+          echo "Tailnet ACL updated (HTTP ${code})."
 
   # ── Integration tests (matrix, each deploys + destroys) ────────────────────
   integration:
