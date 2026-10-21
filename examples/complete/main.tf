@@ -37,15 +37,15 @@ module "exit_node" {
   set_adguard_as_tailnet_dns   = true
 
   # ── AdGuard Home ───────────────────────────────────────────────────────────
-  adguard_enabled             = true
-  adguard_version             = "latest"
-  adguard_web_port            = 3000
-  adguard_username            = "admin"
-  adguard_password            = var.adguard_password
-  adguard_upstream_dns        = ["https://dns10.quad9.net/dns-query", "https://cloudflare-dns.com/dns-query"]
+  adguard_enabled              = true
+  adguard_version              = "latest"
+  adguard_web_port             = 3000
+  adguard_username             = "admin"
+  adguard_password             = var.adguard_password
+  adguard_upstream_dns         = ["https://dns10.quad9.net/dns-query", "https://cloudflare-dns.com/dns-query"]
   adguard_enable_safe_browsing = false
-  adguard_query_log_enabled   = true
-  adguard_stats_interval_days = 7
+  adguard_query_log_enabled    = true
+  adguard_stats_interval_days  = 7
   adguard_blocklist_urls = [
     "https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt",
     "https://adguardteam.github.io/HostlistsRegistry/assets/filter_2.txt",
