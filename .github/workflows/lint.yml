@@ -58,6 +58,8 @@ jobs:
       - uses: aquasecurity/tfsec-action@v1.0.3
         with:
           soft_fail: false
+          # Without a token the action's download of tfsec hits GitHub's API rate limit.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
   checkov:
     name: checkov
