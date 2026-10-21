@@ -21,7 +21,8 @@ jobs:
         run: |
           if ! terraform fmt -check -recursive -diff; then
             terraform fmt -check -recursive -list=true | while read -r f; do
-              echo "::error file=${f}::Not formatted. Run terraform fmt -recursive and commit the result."
+              d=$(terraform fmt -check -diff "${f}" | sed -e 's/%/%25/g' | sed -e ':a;N;$!ba;s/\n/%0A/g')
+              echo "::error file=${f},title=terraform fmt::${d}"
             done
             exit 1
           fi
