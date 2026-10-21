@@ -40,6 +40,13 @@
 - Works with default VPC or custom VPC/subnet
 - Optional SSH key pair generation; BYO key supported
 
+## v1.0.4 (2026-10-21)
+
+### Fix
+
+- **examples**: split adguard_password output onto separate lines (#30)
+- add swap and AdGuard fallback DNS to prevent OOM and DNS outages
+
 ## v1.0.2 (2026-07-01)
 
 ### Fix
