@@ -92,7 +92,8 @@ jobs:
 
           \`\`\`hcl
           module "exit_node" {
-            source = "git::https://github.com/${GITHUB_REPOSITORY}.git?ref=v${VERSION}"
+            source  = "aaditya420/tailscale-exit-node/aws"
+            version = "${VERSION}"
 
             region            = "eu-west-3"
             tailscale_api_key = var.tailscale_api_key
