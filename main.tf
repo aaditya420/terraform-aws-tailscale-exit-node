@@ -9,6 +9,7 @@ provider "tailscale" {
 # ─── Data sources ─────────────────────────────────────────────────────────────
 
 data "aws_availability_zones" "available" {
+  #checkov:skip=CKV_AWS_394:Region-agnostic module. Zone names differ per region, so they cannot be pinned here; only the first zone is used, and only when availability_zone is unset.
   state = "available"
 }
 
@@ -127,8 +128,8 @@ resource "tailscale_tailnet_key" "exit_node" {
 # ─── EC2 instance ─────────────────────────────────────────────────────────────
 
 resource "aws_instance" "tailscale_exit_node" {
-  ami               = local.ami_id
-  instance_type     = var.instance_type
+  ami           = local.ami_id
+  instance_type = var.instance_type
   # When subnet_id is explicit the subnet's AZ takes precedence; setting both
   # would conflict if they differ (e.g. user picks subnet in AZ-b but the
   # default AZ lookup resolves AZ-a).

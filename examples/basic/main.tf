@@ -1,9 +1,9 @@
 terraform {
   required_providers {
-    aws       = { source = "hashicorp/aws",       version = "~> 5.0" }
+    aws       = { source = "hashicorp/aws", version = "~> 5.0" }
     tailscale = { source = "tailscale/tailscale", version = "~> 0.16" }
-    tls       = { source = "hashicorp/tls",       version = "~> 4.0" }
-    random    = { source = "hashicorp/random",    version = "~> 3.0" }
+    tls       = { source = "hashicorp/tls", version = "~> 4.0" }
+    random    = { source = "hashicorp/random", version = "~> 3.0" }
   }
 }
 
@@ -19,9 +19,9 @@ variable "tailscale_api_key" {
   sensitive = true
 }
 
-output "adguard_url"   { value = module.exit_node.adguard_url }
-output "tailscale_ip"  { value = module.exit_node.tailscale_ip }
-output "ssh_command"   { value = module.exit_node.ssh_command }
+output "adguard_url" { value = module.exit_node.adguard_url }
+output "tailscale_ip" { value = module.exit_node.tailscale_ip }
+output "ssh_command" { value = module.exit_node.ssh_command }
 output "adguard_password" {
   value     = module.exit_node.adguard_password
   sensitive = true
