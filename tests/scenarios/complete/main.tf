@@ -1,10 +1,10 @@
 terraform {
   required_providers {
-    aws       = { source = "hashicorp/aws",       version = "~> 5.0" }
+    aws       = { source = "hashicorp/aws", version = "~> 5.0" }
     tailscale = { source = "tailscale/tailscale", version = "~> 0.16" }
-    tls       = { source = "hashicorp/tls",       version = "~> 4.0" }
-    random    = { source = "hashicorp/random",    version = "~> 3.0" }
-    http      = { source = "hashicorp/http",      version = "~> 3.0" }
+    tls       = { source = "hashicorp/tls", version = "~> 4.0" }
+    random    = { source = "hashicorp/random", version = "~> 3.0" }
+    http      = { source = "hashicorp/http", version = "~> 3.0" }
   }
 }
 
@@ -32,13 +32,13 @@ variable "run_id" {
 module "exit_node" {
   source = "../../../"
 
-  region                = var.aws_region
-  name_prefix           = "ci-complete-${var.run_id}"
-  tags                  = { Environment = "ci", Scenario = "complete" }
-  instance_type         = "t4g.micro"
-  instance_architecture = "arm64"
-  root_volume_size_gb   = 10
-  root_volume_encrypted = true
+  region                       = var.aws_region
+  name_prefix                  = "ci-complete-${var.run_id}"
+  tags                         = { Environment = "ci", Scenario = "complete" }
+  instance_type                = "t4g.micro"
+  instance_architecture        = "arm64"
+  root_volume_size_gb          = 10
+  root_volume_encrypted        = true
   tailscale_api_key            = var.tailscale_api_key
   tailscale_exit_node_tag      = "tag:exit-node"
   tailscale_key_expiry_seconds = 3600
@@ -58,12 +58,12 @@ module "exit_node" {
   adguard_stats_interval_days  = 7
 }
 
-output "instance_id"        { value = module.exit_node.instance_id }
+output "instance_id" { value = module.exit_node.instance_id }
 output "instance_public_ip" { value = module.exit_node.instance_public_ip }
-output "tailscale_ip"       { value = module.exit_node.tailscale_ip }
+output "tailscale_ip" { value = module.exit_node.tailscale_ip }
 output "tailscale_device_id" { value = module.exit_node.tailscale_device_id }
-output "adguard_url"        { value = module.exit_node.adguard_url }
-output "adguard_username"   { value = module.exit_node.adguard_username }
+output "adguard_url" { value = module.exit_node.adguard_url }
+output "adguard_username" { value = module.exit_node.adguard_username }
 output "adguard_password" {
   value     = module.exit_node.adguard_password
   sensitive = true
@@ -73,4 +73,4 @@ output "private_key_pem" {
   sensitive = true
 }
 output "ssh_command" { value = module.exit_node.ssh_command }
-output "ami_id"      { value = module.exit_node.ami_id }
+output "ami_id" { value = module.exit_node.ami_id }

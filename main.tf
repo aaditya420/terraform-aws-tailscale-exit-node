@@ -127,8 +127,8 @@ resource "tailscale_tailnet_key" "exit_node" {
 # ─── EC2 instance ─────────────────────────────────────────────────────────────
 
 resource "aws_instance" "tailscale_exit_node" {
-  ami               = local.ami_id
-  instance_type     = var.instance_type
+  ami           = local.ami_id
+  instance_type = var.instance_type
   # When subnet_id is explicit the subnet's AZ takes precedence; setting both
   # would conflict if they differ (e.g. user picks subnet in AZ-b but the
   # default AZ lookup resolves AZ-a).

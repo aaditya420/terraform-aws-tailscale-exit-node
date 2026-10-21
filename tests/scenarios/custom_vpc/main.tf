@@ -1,10 +1,10 @@
 terraform {
   required_providers {
-    aws       = { source = "hashicorp/aws",       version = "~> 5.0" }
+    aws       = { source = "hashicorp/aws", version = "~> 5.0" }
     tailscale = { source = "tailscale/tailscale", version = "~> 0.16" }
-    tls       = { source = "hashicorp/tls",       version = "~> 4.0" }
-    random    = { source = "hashicorp/random",    version = "~> 3.0" }
-    http      = { source = "hashicorp/http",      version = "~> 3.0" }
+    tls       = { source = "hashicorp/tls", version = "~> 4.0" }
+    random    = { source = "hashicorp/random", version = "~> 3.0" }
+    http      = { source = "hashicorp/http", version = "~> 3.0" }
   }
 }
 
@@ -35,23 +35,23 @@ data "aws_subnet" "default" {
 }
 
 module "exit_node" {
-  source            = "../../../"
-  region            = var.aws_region
-  tailscale_api_key = var.tailscale_api_key
-  name_prefix           = "ci-custom-vpc-${var.run_id}"
-  vpc_id                = data.aws_vpc.default.id
-  subnet_id             = data.aws_subnet.default.id
-  tailscale_hostname    = "ci-custom-vpc-${var.run_id}"
+  source                     = "../../../"
+  region                     = var.aws_region
+  tailscale_api_key          = var.tailscale_api_key
+  name_prefix                = "ci-custom-vpc-${var.run_id}"
+  vpc_id                     = data.aws_vpc.default.id
+  subnet_id                  = data.aws_subnet.default.id
+  tailscale_hostname         = "ci-custom-vpc-${var.run_id}"
   manage_tailscale_acl       = false
   set_adguard_as_tailnet_dns = false
   device_join_timeout        = "600s"
 }
 
-output "instance_id"        { value = module.exit_node.instance_id }
+output "instance_id" { value = module.exit_node.instance_id }
 output "instance_public_ip" { value = module.exit_node.instance_public_ip }
-output "tailscale_ip"       { value = module.exit_node.tailscale_ip }
-output "adguard_url"        { value = module.exit_node.adguard_url }
-output "adguard_username"   { value = module.exit_node.adguard_username }
+output "tailscale_ip" { value = module.exit_node.tailscale_ip }
+output "adguard_url" { value = module.exit_node.adguard_url }
+output "adguard_username" { value = module.exit_node.adguard_username }
 output "adguard_password" {
   value     = module.exit_node.adguard_password
   sensitive = true
@@ -60,6 +60,6 @@ output "private_key_pem" {
   value     = module.exit_node.private_key_pem
   sensitive = true
 }
-output "security_group_id"  { value = module.exit_node.security_group_id }
-output "expected_vpc_id"    { value = data.aws_vpc.default.id }
+output "security_group_id" { value = module.exit_node.security_group_id }
+output "expected_vpc_id" { value = data.aws_vpc.default.id }
 output "expected_subnet_id" { value = data.aws_subnet.default.id }
