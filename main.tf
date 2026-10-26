@@ -262,10 +262,7 @@ resource "time_sleep" "wait_for_device" {
   depends_on      = [aws_instance.tailscale_exit_node]
   create_duration = var.device_join_timeout
 
-  # Without this, time_sleep has no attribute tied to the instance, so once
-  # created it never sleeps again — replacing the instance (e.g. a user_data
-  # change) skips the wait entirely and the device-join check below fires
-  # before the new instance has even finished booting.
+  # Ties the sleep to the instance so a replace re-triggers it.
   triggers = {
     instance_id = aws_instance.tailscale_exit_node.id
   }
@@ -304,11 +301,7 @@ resource "null_resource" "wait_for_bootstrap" {
   count      = var.adguard_enabled && var.set_adguard_as_tailnet_dns && var.create_ssh_keypair ? 1 : 0
   depends_on = [time_sleep.wait_for_device]
 
-  # Same issue as time_sleep.wait_for_device above: without a trigger tied to
-  # the instance, this only ever polls once, on first creation. Replacing the
-  # instance would otherwise leave Terraform treating the old instance's
-  # successful poll as still satisfied, never re-checking the new one's
-  # bootstrap at all.
+  # Same fix as time_sleep.wait_for_device above.
   triggers = {
     instance_id = aws_instance.tailscale_exit_node.id
   }
