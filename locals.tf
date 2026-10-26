@@ -20,6 +20,9 @@ locals {
   # AdGuard Home architecture suffix matches GitHub release naming
   adguard_arch = var.instance_architecture == "arm64" ? "arm64" : "amd64"
 
+  # CloudWatch Agent .deb package architecture suffix matches AWS's download path naming
+  cloudwatch_agent_arch = var.instance_architecture == "arm64" ? "arm64" : "amd64"
+
   # AdGuard Home download URL
   adguard_download_url = var.adguard_version == "latest" ? (
     "https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_${local.adguard_arch}.tar.gz"

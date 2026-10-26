@@ -29,7 +29,8 @@ terraform apply
      │     └── user_data bootstraps:
      │           ├── IP forwarding
      │           ├── Tailscale (joins tailnet, advertises exit node, auto-approved)
-     │           └── AdGuard Home (installed + fully configured via API)
+     │           ├── AdGuard Home (installed + fully configured via API)
+     │           └── CloudWatch Agent (publishes memory/swap/disk metrics)
      ├── Waits for device to appear in tailnet (up to 5 min)
      ├── Sets AdGuard Home's Tailscale IP as tailnet-wide DNS nameserver
      └── Outputs: tailscale_ip, adguard_url, adguard_password, ssh_command
@@ -114,6 +115,10 @@ module "exit_node" {
   adguard_upstream_dns        = ["https://dns10.quad9.net/dns-query"]
   adguard_enable_safe_browsing = false
   adguard_stats_interval_days  = 7
+
+  cloudwatch_agent_enabled               = true
+  cloudwatch_namespace                   = "CWAgent"
+  cloudwatch_metrics_collection_interval = 60
 }
 ```
 
@@ -187,6 +192,9 @@ No modules.
 
 | Name | Type |
 |------|------|
+| [aws_iam_instance_profile.cloudwatch_agent](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_instance_profile) | resource |
+| [aws_iam_role.cloudwatch_agent](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role_policy.cloudwatch_agent](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_instance.tailscale_exit_node](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance) | resource |
 | [aws_key_pair.main](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/key_pair) | resource |
 | [aws_security_group.tailscale](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
@@ -200,6 +208,8 @@ No modules.
 | [tls_private_key.ssh](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/resources/private_key) | resource |
 | [aws_ami.ubuntu](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ami) | data source |
 | [aws_availability_zones.available](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/availability_zones) | data source |
+| [aws_iam_policy_document.cloudwatch_agent](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.cloudwatch_agent_assume](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_subnet.default](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/subnet) | data source |
 | [aws_vpc.default](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/vpc) | data source |
 | [http_http.tailscale_devices](https://registry.terraform.io/providers/hashicorp/http/latest/docs/data-sources/http) | data source |
@@ -224,6 +234,9 @@ No modules.
 | <a name="input_ami_name_filter"></a> [ami\_name\_filter](#input\_ami\_name\_filter) | Glob filter for AMI name lookup. Defaults to Ubuntu 22.04 for the resolved architecture. | `string` | `null` | no |
 | <a name="input_ami_owner_id"></a> [ami\_owner\_id](#input\_ami\_owner\_id) | AWS account ID that owns the AMI used for auto-lookup. Defaults to Canonical. | `string` | `"099720109477"` | no |
 | <a name="input_availability_zone"></a> [availability\_zone](#input\_availability\_zone) | AZ for the instance. Defaults to the first available AZ in the selected region. | `string` | `""` | no |
+| <a name="input_cloudwatch_agent_enabled"></a> [cloudwatch\_agent\_enabled](#input\_cloudwatch\_agent\_enabled) | Install and configure the CloudWatch Agent so memory, swap, and disk metrics are published — EC2 does not report these by default. Also creates the IAM role/instance profile the agent needs for cloudwatch:PutMetricData. | `bool` | `true` | no |
+| <a name="input_cloudwatch_metrics_collection_interval"></a> [cloudwatch\_metrics\_collection\_interval](#input\_cloudwatch\_metrics\_collection\_interval) | How often, in seconds, the CloudWatch Agent collects and publishes metrics. | `number` | `60` | no |
+| <a name="input_cloudwatch_namespace"></a> [cloudwatch\_namespace](#input\_cloudwatch\_namespace) | CloudWatch namespace the agent publishes memory/swap/disk metrics under. | `string` | `"CWAgent"` | no |
 | <a name="input_create_ssh_keypair"></a> [create\_ssh\_keypair](#input\_create\_ssh\_keypair) | Auto-generate an RSA key pair. Set false and supply existing\_key\_name to BYO key. | `bool` | `true` | no |
 | <a name="input_device_join_timeout"></a> [device\_join\_timeout](#input\_device\_join\_timeout) | How long to poll for the device to appear in the tailnet after the instance boots. | `string` | `"300s"` | no |
 | <a name="input_enable_magic_dns"></a> [enable\_magic\_dns](#input\_enable\_magic\_dns) | Enable MagicDNS across the tailnet so nameservers below are distributed. | `bool` | `true` | no |

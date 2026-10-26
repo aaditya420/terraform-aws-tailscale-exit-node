@@ -158,5 +158,45 @@ curl -sf -X POST "http://localhost:$${ADGUARD_WEB_PORT}/control/stats_config" \
 echo "AdGuard Home fully configured."
 %{ endif }
 
+%{ if cloudwatch_agent_enabled }
+# ── Install & configure CloudWatch Agent (memory/swap/disk metrics) ──────────
+# EC2 does not report memory usage by default; the agent fills that gap.
+curl -fsSL "https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/${cloudwatch_agent_arch}/latest/amazon-cloudwatch-agent.deb" -o /tmp/amazon-cloudwatch-agent.deb
+dpkg -i -E /tmp/amazon-cloudwatch-agent.deb
+rm -f /tmp/amazon-cloudwatch-agent.deb
+
+mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
+cat > /opt/aws/amazon-cloudwatch-agent/etc/config.json <<'CWCONFIG'
+{
+  "metrics": {
+    "namespace": "${cloudwatch_namespace}",
+    "append_dimensions": {
+      "InstanceId": "$${aws:InstanceId}"
+    },
+    "metrics_collected": {
+      "mem": {
+        "measurement": ["mem_used_percent", "mem_available", "mem_used", "mem_total"],
+        "metrics_collection_interval": ${cloudwatch_metrics_collection_interval}
+      },
+      "swap": {
+        "measurement": ["swap_used_percent"],
+        "metrics_collection_interval": ${cloudwatch_metrics_collection_interval}
+      },
+      "disk": {
+        "measurement": ["used_percent"],
+        "metrics_collection_interval": ${cloudwatch_metrics_collection_interval},
+        "resources": ["/"]
+      }
+    }
+  }
+}
+CWCONFIG
+
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+  -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/config.json
+
+echo "CloudWatch Agent configured."
+%{ endif }
+
 touch /tmp/bootstrap-complete
 echo "Bootstrap complete."
