@@ -18,7 +18,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # main's ruleset only bypasses pushes from the repo's Admin role — the
+          # default GITHUB_TOKEN authenticates as the github-actions[bot] app
+          # identity, which isn't eligible for a bypass on a personal (non-org)
+          # repo, so it gets GH006-rejected. RELEASE_PAT is a PAT belonging to an
+          # account with Admin on this repo, so its pushes go through.
+          token: ${{ secrets.RELEASE_PAT }}
 
       - uses: actions/setup-python@v7
         with:
