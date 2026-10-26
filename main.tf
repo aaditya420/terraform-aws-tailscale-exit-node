@@ -261,6 +261,11 @@ resource "aws_instance" "tailscale_exit_node" {
 resource "time_sleep" "wait_for_device" {
   depends_on      = [aws_instance.tailscale_exit_node]
   create_duration = var.device_join_timeout
+
+  # Ties the sleep to the instance so a replace re-triggers it.
+  triggers = {
+    instance_id = aws_instance.tailscale_exit_node.id
+  }
 }
 
 # ─── Tailscale device lookup via API (hostname-based, provider-version agnostic) ─
@@ -295,6 +300,11 @@ data "http" "tailscale_devices" {
 resource "null_resource" "wait_for_bootstrap" {
   count      = var.adguard_enabled && var.set_adguard_as_tailnet_dns && var.create_ssh_keypair ? 1 : 0
   depends_on = [time_sleep.wait_for_device]
+
+  # Same fix as time_sleep.wait_for_device above.
+  triggers = {
+    instance_id = aws_instance.tailscale_exit_node.id
+  }
 
   connection {
     type        = "ssh"
