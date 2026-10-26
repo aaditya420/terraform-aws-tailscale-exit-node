@@ -125,6 +125,54 @@ resource "tailscale_tailnet_key" "exit_node" {
   depends_on = [tailscale_acl.main]
 }
 
+# ─── CloudWatch Agent IAM role ───────────────────────────────────────────────
+
+data "aws_iam_policy_document" "cloudwatch_agent_assume" {
+  count = var.cloudwatch_agent_enabled ? 1 : 0
+
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+# cloudwatch:PutMetricData has no resource-level permissions in IAM — "*" is
+# required by the action itself, not an over-broad grant.
+data "aws_iam_policy_document" "cloudwatch_agent" {
+  count = var.cloudwatch_agent_enabled ? 1 : 0
+
+  #checkov:skip=CKV_AWS_111:cloudwatch:PutMetricData does not support resource-level permissions
+  #checkov:skip=CKV_AWS_356:cloudwatch:PutMetricData does not support resource-level permissions
+  statement {
+    actions   = ["cloudwatch:PutMetricData"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role" "cloudwatch_agent" {
+  count              = var.cloudwatch_agent_enabled ? 1 : 0
+  name               = "${var.name_prefix}-cwagent"
+  assume_role_policy = data.aws_iam_policy_document.cloudwatch_agent_assume[0].json
+  tags               = local.common_tags
+}
+
+resource "aws_iam_role_policy" "cloudwatch_agent" {
+  count  = var.cloudwatch_agent_enabled ? 1 : 0
+  name   = "${var.name_prefix}-cwagent-put-metric-data"
+  role   = aws_iam_role.cloudwatch_agent[0].id
+  policy = data.aws_iam_policy_document.cloudwatch_agent[0].json
+}
+
+resource "aws_iam_instance_profile" "cloudwatch_agent" {
+  count = var.cloudwatch_agent_enabled ? 1 : 0
+  name  = "${var.name_prefix}-cwagent"
+  role  = aws_iam_role.cloudwatch_agent[0].name
+  tags  = local.common_tags
+}
+
 # ─── EC2 instance ─────────────────────────────────────────────────────────────
 
 resource "aws_instance" "tailscale_exit_node" {
@@ -138,6 +186,7 @@ resource "aws_instance" "tailscale_exit_node" {
   key_name          = local.key_name
 
   vpc_security_group_ids = [aws_security_group.tailscale.id]
+  iam_instance_profile   = var.cloudwatch_agent_enabled ? aws_iam_instance_profile.cloudwatch_agent[0].name : null
 
   # Mandatory for exit node — forwards packets destined for other hosts
   source_dest_check = false
@@ -171,6 +220,11 @@ resource "aws_instance" "tailscale_exit_node" {
     adguard_enable_safesearch    = var.adguard_enable_safesearch
     adguard_query_log_enabled    = var.adguard_query_log_enabled
     adguard_stats_interval_hours = local.adguard_stats_interval_hours
+
+    cloudwatch_agent_enabled               = var.cloudwatch_agent_enabled
+    cloudwatch_agent_arch                  = local.cloudwatch_agent_arch
+    cloudwatch_namespace                   = var.cloudwatch_namespace
+    cloudwatch_metrics_collection_interval = var.cloudwatch_metrics_collection_interval
   })
 
   root_block_device {

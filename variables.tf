@@ -301,3 +301,23 @@ variable "adguard_stats_interval_days" {
   type        = number
   default     = 7
 }
+
+# ─── CloudWatch Agent ────────────────────────────────────────────────────────
+
+variable "cloudwatch_agent_enabled" {
+  description = "Install and configure the CloudWatch Agent so memory, swap, and disk metrics are published — EC2 does not report these by default. Also creates the IAM role/instance profile the agent needs for cloudwatch:PutMetricData."
+  type        = bool
+  default     = true
+}
+
+variable "cloudwatch_namespace" {
+  description = "CloudWatch namespace the agent publishes memory/swap/disk metrics under."
+  type        = string
+  default     = "CWAgent"
+}
+
+variable "cloudwatch_metrics_collection_interval" {
+  description = "How often, in seconds, the CloudWatch Agent collects and publishes metrics."
+  type        = number
+  default     = 60
+}
