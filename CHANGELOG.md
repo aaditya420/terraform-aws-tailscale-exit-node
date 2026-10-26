@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.1.0 (2026-10-26)
+
+### Feat
+
+- add CloudWatch Agent for memory/swap/disk metrics (#34)
+
+### Fix
+
+- **ci**: push release commits/tags via PAT, not the Actions bot token (#36)
+- **changelog**: remove manual v1.0.6 heading that broke release automation (#35)
+
 ## v1.0.5 (2026-10-21)
 
 ### Fix
