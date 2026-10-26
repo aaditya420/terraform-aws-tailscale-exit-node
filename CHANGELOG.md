@@ -1,17 +1,5 @@
 # Changelog
 
-## v1.0.6 (2026-10-26)
-
-### Feat
-
-- Install and configure the CloudWatch Agent on first boot so memory, swap, and disk metrics are published to CloudWatch (EC2 reports CPU/network/disk I/O by default, but not memory) — gated by new `cloudwatch_agent_enabled` (default `true`)
-- Add IAM role + instance profile scoped to `cloudwatch:PutMetricData`, attached to the instance only when `cloudwatch_agent_enabled = true`
-- Add `cloudwatch_agent_enabled`, `cloudwatch_namespace`, and `cloudwatch_metrics_collection_interval` input variables
-
-### Note
-
-- Attaching the new instance profile and changing `user_data` means `terraform apply` will replace the running instance (new IAM role, new boot, re-join the tailnet)
-
 ## v1.0.5 (2026-10-21)
 
 ### Fix
