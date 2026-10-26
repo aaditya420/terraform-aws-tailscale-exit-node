@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.1 (2026-10-26)
+
+### Fix
+
+- re-wait for tailnet join and bootstrap on every instance replace (#37)
+
 ## v1.1.0 (2026-10-26)
 
 ### Feat
